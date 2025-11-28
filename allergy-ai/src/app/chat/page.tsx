@@ -22,7 +22,6 @@ export default function ChatPage() {
     appendToMessage,
     setLoading,
     setStreaming,
-    clearCurrentChat,
     getContextMessages,
     getCurrentSession,
   } = useChatStore()
@@ -175,7 +174,7 @@ export default function ChatPage() {
           isSidebarOpen ? 'ml-72' : 'ml-16'
         )}
       >
-        <ChatHeader onClearChat={clearCurrentChat} />
+        <ChatHeader />
 
         {/* Messages Area */}
         <ScrollArea className="flex-1 p-4">

@@ -1,15 +1,11 @@
 'use client'
 
-import { FaLeaf, FaTrash, FaSignOutAlt } from 'react-icons/fa'
+import { FaLeaf, FaSignOutAlt } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
 import { useChatStore } from '@/store/chat-store'
 
-interface ChatHeaderProps {
-  onClearChat: () => void
-}
-
-export function ChatHeader({ onClearChat }: ChatHeaderProps) {
+export function ChatHeader() {
   const { getCurrentSession } = useChatStore()
   const currentSession = getCurrentSession()
 
@@ -28,15 +24,6 @@ export function ChatHeader({ onClearChat }: ChatHeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClearChat}
-          className="text-muted-foreground hover:text-destructive"
-        >
-          <FaTrash className="w-4 h-4 mr-2" />
-          <span className="hidden sm:inline">Clear Chat</span>
-        </Button>
         <Button
           variant="ghost"
           size="sm"

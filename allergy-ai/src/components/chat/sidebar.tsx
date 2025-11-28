@@ -1,56 +1,77 @@
 'use client'
 
-import { FaBars, FaEdit, FaTrash, FaLeaf, FaComments } from 'react-icons/fa'
+import { FaBars, FaEdit, FaTrash, FaLeaf, FaEllipsisV, FaShare, FaPen, FaSearch } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { useChatStore, ChatSession } from '@/store/chat-store'
 import { cn } from '@/lib/utils'
-
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  if (diffDays < 7) return `${diffDays} days ago`
-  return date.toLocaleDateString()
-}
 
 interface ChatItemProps {
   session: ChatSession
   isActive: boolean
   onSelect: () => void
   onDelete: () => void
+  onRename: () => void
+  onShare: () => void
 }
 
-function ChatItem({ session, isActive, onSelect, onDelete }: ChatItemProps) {
+function ChatItem({ session, isActive, onSelect, onDelete, onRename, onShare }: ChatItemProps) {
   return (
     <div
       className={cn(
-        'group flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200',
+        'group flex items-center justify-between h-11 pl-4 pr-2 cursor-pointer transition-all duration-150 rounded-full mx-2',
         isActive 
-          ? 'bg-primary/15 text-primary' 
-          : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
+          ? 'bg-primary/10' 
+          : 'hover:bg-muted/50'
       )}
       onClick={onSelect}
     >
-      <FaComments className="w-4 h-4 flex-shrink-0 opacity-70" />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{session.title}</p>
-        <p className="text-xs opacity-60">{formatDate(session.updatedAt)}</p>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10"
-        onClick={(e) => {
-          e.stopPropagation()
-          onDelete()
-        }}
+      <span className={cn(
+        'text-sm truncate',
+        isActive ? 'text-primary font-medium' : 'text-foreground/80'
+      )}>
+        {session.title}
+      </span>
+      
+      {/* Three-dot menu */}
+      <div 
+        className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
       >
-        <FaTrash className="w-3 h-3 text-destructive" />
-      </Button>
+        <DropdownMenu
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 hover:bg-black/10 rounded-full"
+            >
+              <FaEllipsisV className="w-3 h-3 text-muted-foreground" />
+            </Button>
+          }
+        >
+          <DropdownMenuItem 
+            icon={<FaPen className="w-3 h-3" />}
+            onClick={onRename}
+          >
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            icon={<FaShare className="w-3 h-3" />}
+            onClick={onShare}
+          >
+            Share
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            icon={<FaTrash className="w-3 h-3" />}
+            onClick={onDelete}
+            variant="destructive"
+          >
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenu>
+      </div>
     </div>
   )
 }
@@ -64,20 +85,34 @@ export function Sidebar() {
     createNewSession,
     switchSession,
     deleteSession,
+    updateSessionTitle,
   } = useChatStore()
+
+  const handleRename = (sessionId: string, currentTitle: string) => {
+    const newTitle = window.prompt('Enter new chat name:', currentTitle)
+    if (newTitle && newTitle.trim()) {
+      updateSessionTitle(sessionId, newTitle.trim())
+    }
+  }
+
+  const handleShare = (session: ChatSession) => {
+    const summary = `AllergyAI Chat: ${session.title}\n\nMessages: ${session.messages.length}`
+    navigator.clipboard.writeText(summary)
+    alert('Chat info copied to clipboard!')
+  }
 
   return (
     <>
       {/* Sidebar */}
       <div
         className={cn(
-          'fixed left-0 top-0 h-full z-40 flex flex-col bg-muted/30 border-r transition-all duration-300 ease-in-out',
+          'fixed left-0 top-0 h-full z-40 flex flex-col bg-background border-r transition-all duration-300 ease-in-out',
           isSidebarOpen ? 'w-72' : 'w-16'
         )}
       >
-        {/* Top Controls - Hamburger & New Chat */}
-        <div className="p-3 space-y-1">
-          {/* Hamburger Menu - Expand/Collapse */}
+        {/* Top Controls */}
+        <div className="p-3 flex items-center justify-between">
+          {/* Hamburger Menu */}
           <Button
             variant="ghost"
             size="icon"
@@ -88,15 +123,36 @@ export function Sidebar() {
             <FaBars className="w-5 h-5 text-muted-foreground" />
           </Button>
 
-          {/* New Chat Button */}
+          {/* Search button - only when expanded */}
+          {isSidebarOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full hover:bg-muted"
+              title="Search"
+            >
+              <FaSearch className="w-4 h-4 text-muted-foreground" />
+            </Button>
+          )}
+        </div>
+
+        {/* New Chat Button */}
+        <div className="px-3 mb-2">
           <Button
             variant="ghost"
-            size="icon"
             onClick={() => createNewSession()}
-            className="h-10 w-10 rounded-full hover:bg-muted"
+            className={cn(
+              'hover:bg-muted rounded-full transition-all',
+              isSidebarOpen 
+                ? 'h-12 px-4 justify-start gap-3 w-full' 
+                : 'h-10 w-10 p-0 mx-auto'
+            )}
             title="New chat"
           >
-            <FaEdit className="w-5 h-5 text-muted-foreground" />
+            <FaEdit className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            {isSidebarOpen && (
+              <span className="text-sm text-muted-foreground">New Chat</span>
+            )}
           </Button>
         </div>
 
@@ -104,14 +160,14 @@ export function Sidebar() {
         {isSidebarOpen && (
           <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in duration-200">
             {/* Section Header */}
-            <div className="px-4 py-2">
-              <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Recent Chats
+            <div className="px-4 py-3">
+              <h2 className="text-xs font-medium text-muted-foreground">
+                Recent
               </h2>
             </div>
 
             {/* Chat List */}
-            <ScrollArea className="flex-1 px-2">
+            <ScrollArea className="flex-1">
               <div className="space-y-1 pb-4">
                 {sessions.length === 0 ? (
                   <div className="text-center py-12 px-4">
@@ -120,7 +176,7 @@ export function Sidebar() {
                     </div>
                     <p className="text-sm text-muted-foreground">No conversations yet</p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      Click the edit icon to start a new chat
+                      Click New Chat to start
                     </p>
                   </div>
                 ) : (
@@ -131,24 +187,13 @@ export function Sidebar() {
                       isActive={session.id === currentSessionId}
                       onSelect={() => switchSession(session.id)}
                       onDelete={() => deleteSession(session.id)}
+                      onRename={() => handleRename(session.id, session.title)}
+                      onShare={() => handleShare(session)}
                     />
                   ))
                 )}
               </div>
             </ScrollArea>
-
-            {/* Bottom Branding */}
-            <div className="p-4 border-t">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                  <FaLeaf className="w-4 h-4 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">AllergyAI</p>
-                  <p className="text-xs opacity-70">v1.0</p>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
