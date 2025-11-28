@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { FaPaperPlane } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -10,9 +10,21 @@ interface ChatInputProps {
   disabled?: boolean
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export interface ChatInputHandle {
+  focus: () => void
+}
+
+export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
+  function ChatInput({ onSend, disabled }, ref) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Expose focus method to parent
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textareaRef.current?.focus()
+    }
+  }))
 
   // Auto-resize textarea
   useEffect(() => {
@@ -23,14 +35,27 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     }
   }, [input])
 
+  // Refocus when disabled changes from true to false
+  useEffect(() => {
+    if (!disabled) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus()
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [disabled])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (input.trim() && !disabled) {
-      onSend(input.trim())
+      const message = input.trim()
       setInput('')
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
       }
+      // Send message after clearing input
+      onSend(message)
     }
   }
 
@@ -39,6 +64,11 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       e.preventDefault()
       handleSubmit(e)
     }
+  }
+
+  // Prevent button from stealing focus
+  const handleButtonMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
   }
 
   return (
@@ -53,6 +83,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             placeholder="Ask about allergies, pollen, or diet..."
             disabled={disabled}
             rows={1}
+            autoFocus
             className={cn(
               'w-full resize-none rounded-xl border border-input bg-background px-4 py-3 pr-12 text-sm',
               'ring-offset-background placeholder:text-muted-foreground',
@@ -66,6 +97,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           type="submit"
           size="icon"
           disabled={disabled || !input.trim()}
+          onMouseDown={handleButtonMouseDown}
+          tabIndex={-1}
           className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 flex-shrink-0"
         >
           <FaPaperPlane className="h-4 w-4" />
@@ -74,5 +107,4 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       </div>
     </form>
   )
-}
-
+})
