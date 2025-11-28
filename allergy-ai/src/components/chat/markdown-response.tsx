@@ -9,6 +9,7 @@ import rehypeRaw from 'rehype-raw'
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize'
 import { codeToHtml } from 'shiki'
 import mermaid from 'mermaid'
+import katex from 'katex'
 import { cn } from '@/lib/utils'
 import { FaCheck, FaCopy } from 'react-icons/fa'
 
@@ -31,6 +32,11 @@ interface CodeBlockProps {
 interface MermaidBlockProps {
   chart: string
   id: string
+}
+
+interface LaTeXBlockProps {
+  math: string
+  displayMode?: boolean
 }
 
 // ============================================================================
@@ -104,6 +110,57 @@ function MermaidBlock({ chart, id }: MermaidBlockProps) {
       ref={containerRef}
       className="my-4 flex justify-center overflow-x-auto rounded-lg bg-muted/30 p-4"
       dangerouslySetInnerHTML={{ __html: svg }}
+    />
+  )
+}
+
+// ============================================================================
+// LaTeX Block Component (for ```latex or ```math code blocks)
+// ============================================================================
+
+function LaTeXBlock({ math, displayMode = true }: LaTeXBlockProps) {
+  const [html, setHtml] = useState<string>('')
+  const [error, setError] = useState<string>('')
+
+  useEffect(() => {
+    try {
+      const rendered = katex.renderToString(math, {
+        displayMode,
+        throwOnError: false,
+        strict: false,
+        trust: true,
+        macros: {
+          '\\R': '\\mathbb{R}',
+          '\\N': '\\mathbb{N}',
+          '\\Z': '\\mathbb{Z}',
+          '\\C': '\\mathbb{C}',
+        },
+      })
+      setHtml(rendered)
+      setError('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to render LaTeX')
+      setHtml('')
+    }
+  }, [math, displayMode])
+
+  if (error) {
+    return (
+      <div className="my-4 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm">
+        <p className="font-medium text-amber-600 dark:text-amber-400">LaTeX Error</p>
+        <pre className="mt-2 text-xs opacity-75">{error}</pre>
+        <pre className="mt-2 font-mono text-xs bg-muted p-2 rounded">{math}</pre>
+      </div>
+    )
+  }
+
+  return (
+    <div 
+      className={cn(
+        'my-4 overflow-x-auto',
+        displayMode && 'flex justify-center py-2'
+      )}
+      dangerouslySetInnerHTML={{ __html: html }}
     />
   )
 }
@@ -270,12 +327,35 @@ const sanitizeSchema = {
 }
 
 // ============================================================================
+// Content Preprocessor for LaTeX
+// ============================================================================
+
+function preprocessContent(content: string): string {
+  let processed = content
+
+  // Convert \[...\] to $$...$$ (display math)
+  processed = processed.replace(/\\\[([\s\S]*?)\\\]/g, '\n$$\n$1\n$$\n')
+  
+  // Convert \(...\) to $...$ (inline math)
+  processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$')
+  
+  // Convert ```latex blocks to $$...$$ so remark-math can process them too
+  // But keep them as code blocks for our custom renderer to handle
+  // Actually, we handle this in the code component, so no change needed here
+  
+  return processed
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
 function MarkdownResponseInner({ content, isStreaming = false, className }: MarkdownResponseProps) {
   const componentId = useId()
   const mermaidCounter = useRef(0)
+  
+  // Preprocess content to normalize LaTeX delimiters
+  const processedContent = useMemo(() => preprocessContent(content), [content])
 
   // Memoize components to prevent unnecessary re-renders
   const components: Components = useMemo(() => ({
@@ -296,6 +376,11 @@ function MarkdownResponseInner({ content, isStreaming = false, className }: Mark
       if (language === 'mermaid') {
         const id = `${componentId}-${mermaidCounter.current++}`
         return <MermaidBlock chart={codeContent} id={id} />
+      }
+
+      // Handle LaTeX/Math code blocks
+      if (language === 'latex' || language === 'math' || language === 'tex') {
+        return <LaTeXBlock math={codeContent} displayMode={true} />
       }
 
       return (
@@ -439,7 +524,7 @@ function MarkdownResponseInner({ content, isStreaming = false, className }: Mark
         ]}
         components={components}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   )
