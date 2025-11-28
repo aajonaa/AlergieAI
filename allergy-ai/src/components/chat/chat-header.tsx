@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { FaLeaf, FaSignOutAlt } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
@@ -8,6 +9,12 @@ import { useChatStore } from '@/store/chat-store'
 export function ChatHeader() {
   const { getCurrentSession } = useChatStore()
   const currentSession = getCurrentSession()
+  
+  // Prevent hydration mismatch - only show session title after client mount
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -17,7 +24,7 @@ export function ChatHeader() {
         </div>
         <div>
           <h1 className="text-lg font-semibold text-foreground">
-            {currentSession?.title || 'AllergyAI'}
+            {mounted ? (currentSession?.title || 'AllergyAI') : 'AllergyAI'}
           </h1>
           <p className="text-xs text-muted-foreground">Your Expert Allergist Assistant</p>
         </div>

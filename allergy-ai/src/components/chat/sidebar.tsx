@@ -1,11 +1,16 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { FaBars, FaEdit, FaTrash, FaLeaf, FaEllipsisV, FaShare, FaPen, FaSearch } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { useChatStore, ChatSession } from '@/store/chat-store'
 import { cn } from '@/lib/utils'
+
+interface SidebarProps {
+  onNewChat?: () => void
+}
 
 interface ChatItemProps {
   session: ChatSession
@@ -76,7 +81,7 @@ function ChatItem({ session, isActive, onSelect, onDelete, onRename, onShare }: 
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ onNewChat }: SidebarProps) {
   const {
     sessions,
     currentSessionId,
@@ -87,6 +92,20 @@ export function Sidebar() {
     deleteSession,
     updateSessionTitle,
   } = useChatStore()
+
+  // Prevent hydration mismatch - only show sessions after client mount
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const handleNewChat = () => {
+    createNewSession()
+    // Small delay to ensure the session is created before focusing
+    setTimeout(() => {
+      onNewChat?.()
+    }, 0)
+  }
 
   const handleRename = (sessionId: string, currentTitle: string) => {
     const newTitle = window.prompt('Enter new chat name:', currentTitle)
@@ -140,7 +159,7 @@ export function Sidebar() {
         <div className="px-3 mb-2">
           <Button
             variant="ghost"
-            onClick={() => createNewSession()}
+            onClick={handleNewChat}
             className={cn(
               'hover:bg-muted rounded-full transition-all',
               isSidebarOpen 
@@ -169,7 +188,7 @@ export function Sidebar() {
             {/* Chat List */}
             <ScrollArea className="flex-1">
               <div className="space-y-1 pb-4">
-                {sessions.length === 0 ? (
+                {!mounted || sessions.length === 0 ? (
                   <div className="text-center py-12 px-4">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                       <FaLeaf className="w-6 h-6 text-primary/50" />

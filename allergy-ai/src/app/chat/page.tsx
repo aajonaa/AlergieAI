@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ChatHeader } from '@/components/chat/chat-header'
 import { ChatInput, ChatInputHandle } from '@/components/chat/chat-input'
@@ -26,8 +26,14 @@ export default function ChatPage() {
     getCurrentSession,
   } = useChatStore()
 
+  // Prevent hydration mismatch - only show persisted data after client mount
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const currentSession = getCurrentSession()
-  const messages = currentSession?.messages || []
+  const messages = mounted ? (currentSession?.messages || []) : []
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<ChatInputHandle>(null)
@@ -59,6 +65,11 @@ export default function ChatPage() {
 
   // Focus input on mount
   useEffect(() => {
+    chatInputRef.current?.focus()
+  }, [])
+
+  // Handle focus when new chat is created
+  const handleNewChat = useCallback(() => {
     chatInputRef.current?.focus()
   }, [])
 
@@ -165,7 +176,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen bg-gradient-to-b from-primary/5 via-background to-background">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar onNewChat={handleNewChat} />
 
       {/* Main Chat Area */}
       <div
