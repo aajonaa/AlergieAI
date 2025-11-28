@@ -77,6 +77,18 @@ export const useChatStore = create<ChatState>()(
       isSidebarOpen: false,
 
       createNewSession: () => {
+        const { sessions } = get()
+        
+        // Check if there's already an empty session (no messages)
+        const existingEmptySession = sessions.find(s => s.messages.length === 0)
+        
+        if (existingEmptySession) {
+          // Switch to the existing empty session instead of creating a new one
+          set({ currentSessionId: existingEmptySession.id })
+          return existingEmptySession.id
+        }
+        
+        // Create a new session only if no empty session exists
         const newSession: ChatSession = {
           id: generateId(),
           title: 'New Chat',
