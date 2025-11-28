@@ -13,7 +13,7 @@ export CUDA_VISIBLE_DEVICES=0
 MODEL_NAME="Qwen/Qwen2.5-1.5B-Instruct"
 
 # Path to python in the virtual environment
-PYTHON_EXEC="/root/github/AlergieAI/.venv/bin/python"
+PYTHON_EXEC=".venv/bin/python"
 
 echo "----------------------------------------------------------------"
 echo "Starting vLLM Deployment"

@@ -6,7 +6,7 @@ st.set_page_config(page_title="AlergieAI Chat", page_icon="🤖")
 # 1. Connect to YOUR local backend
 # We point the "OpenAI" client to your vLLM server
 client = OpenAI(
-    base_url="http://127.0.0.1:8000/v1", 
+    base_url="http://localhost:8000/v1", 
     api_key="dummy-key" # vLLM doesn't check keys by default
 )
 

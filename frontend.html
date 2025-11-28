@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlergieAI - Local LLM Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #chat {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 6px;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background: #e3f2fd;
+            margin-left: 20%;
+        }
+
+        .assistant-message {
+            background: #f5f5f5;
+            margin-right: 20%;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .input-container {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        #input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 50px;
+        }
+
+        #input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #1976D2;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🤖 AlergieAI - Local Chat</h1>
+    <div id="chat"></div>
+    <div class="input-container">
+        <textarea id="input" placeholder="Type your message... (Press Enter to send)"></textarea>
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        // FIXED: Use 127.0.0.1 instead of localhost for WSL compatibility
+        const apiUrl = 'http://127.0.0.1:8000/v1/chat/completions';
+        const chatDiv = document.getElementById('chat');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('sendBtn');
+
+        let conversation = []; // Track history for context
+        let isProcessing = false;
+
+        // Allow Enter to send (Shift+Enter for new line)
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const prompt = input.value.trim();
+            if (!prompt || isProcessing) return;
+
+            // Set processing state
+            isProcessing = true;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
+            // Display user message
+            appendMessage(prompt, 'user');
+            input.value = '';
+
+            // Add to conversation history
+            conversation.push({ role: 'user', content: prompt });
+
+            let assistantContent = '';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'Qwen/Qwen2.5-1.5B-Instruct',
+                        messages: conversation,
+                        stream: true,
+                        temperature: 0.7,
+                        max_tokens: 2000
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API error (${response.status}): ${errorText}`);
+                }
+
+                // Create placeholder for streaming response
+                const messageId = appendMessage('', 'assistant', true);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    // Decode and add to buffer
+                    buffer += decoder.decode(value, { stream: true });
+
+                    // Process complete lines
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+                        const data = trimmed.slice(6);
+                        if (data === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta?.content;
+                            if (delta) {
+                                assistantContent += delta;
+                                updateMessage(messageId, assistantContent);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to parse SSE data:', data, e);
+                        }
+                    }
+                }
+
+                // Finalize the message
+                if (assistantContent) {
+                    finalizeMessage(messageId);
+                    conversation.push({ role: 'assistant', content: assistantContent });
+                } else {
+                    updateMessage(messageId, '(No response received)');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                appendMessage(`Error: ${error.message}\n\nMake sure vLLM is running and accessible at ${apiUrl}`, 'error');
+            } finally {
+                // Reset processing state
+                isProcessing = false;
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+            }
+        }
+
+        function appendMessage(text, role, isStreaming = false) {
+            const div = document.createElement('div');
+            const messageId = 'msg-' + Date.now();
+            div.id = messageId;
+            div.className = `message ${role}-message ${isStreaming ? 'loading' : ''}`;
+            div.textContent = text || (isStreaming ? 'Thinking...' : '');
+            chatDiv.appendChild(div);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+            return messageId;
+        }
+
+        function updateMessage(messageId, text) {
+            const element = document.getElementById(messageId);
+            if (element) {
+                element.textContent = text;
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            }
+        }
+
+        function finalizeMessage(messageId) {
+            const element = document.getElementById(messageId);
+            if (element) {
+                element.classList.remove('loading');
+            }
+        }
+
+        // Display welcome message
+        appendMessage('Welcome! I\'m your local AI assistant running on vLLM. How can I help you today?', 'assistant');
+    </script>
+</body>
+
+</html>
