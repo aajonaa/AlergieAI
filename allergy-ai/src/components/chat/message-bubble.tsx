@@ -1,15 +1,16 @@
 'use client'
 
-import ReactMarkdown from 'react-markdown'
 import { FaLeaf, FaUser } from 'react-icons/fa'
 import { cn } from '@/lib/utils'
 import { Message } from '@/store/chat-store'
+import { MarkdownResponse } from './markdown-response'
 
 interface MessageBubbleProps {
   message: Message
+  isStreaming?: boolean
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, isStreaming = false }: MessageBubbleProps) {
   const isUser = message.role === 'user'
 
   return (
@@ -45,9 +46,11 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         {isUser ? (
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="markdown-content text-sm">
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          </div>
+          <MarkdownResponse 
+            content={message.content} 
+            isStreaming={isStreaming}
+            className="text-sm"
+          />
         )}
       </div>
     </div>

@@ -219,8 +219,12 @@ export default function ChatPage() {
               </div>
             ) : (
               <>
-                {messages.map((message) => (
-                  <MessageBubble key={message.id} message={message} />
+                {messages.map((message, index) => (
+                  <MessageBubble 
+                    key={message.id} 
+                    message={message} 
+                    isStreaming={isStreaming && index === messages.length - 1}
+                  />
                 ))}
                 {isLoading && !isStreaming && <TypingIndicator />}
               </>
