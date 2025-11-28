@@ -72,34 +72,34 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
   }
 
   return (
-    <form onSubmit={handleSubmit} className="relative">
-      <div className="flex items-end gap-2 p-4 border-t bg-background">
-        <div className="flex-1 relative">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about allergies, pollen, or diet..."
-            disabled={disabled}
-            rows={1}
-            autoFocus
-            className={cn(
-              'w-full resize-none rounded-xl border border-input bg-background px-4 py-3 pr-12 text-sm',
-              'ring-offset-background placeholder:text-muted-foreground',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              'disabled:cursor-not-allowed disabled:opacity-50',
-              'min-h-[48px] max-h-[200px]'
-            )}
-          />
-        </div>
+    <form onSubmit={handleSubmit} className="p-4">
+      <div className="flex items-end gap-3">
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about allergies, pollen, or diet..."
+          disabled={disabled}
+          rows={1}
+          autoFocus
+          className={cn(
+            'flex-1 resize-none rounded-xl border border-input bg-background px-4 py-[11px] text-sm leading-5',
+            'ring-offset-background placeholder:text-muted-foreground',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            'max-h-[200px] overflow-y-auto',
+            // Hide scrollbar but keep scroll functionality
+            '[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]'
+          )}
+        />
         <Button
           type="submit"
           size="icon"
           disabled={disabled || !input.trim()}
           onMouseDown={handleButtonMouseDown}
           tabIndex={-1}
-          className="h-12 w-12 rounded-xl bg-primary hover:bg-primary/90 flex-shrink-0"
+          className="h-[44px] w-[44px] rounded-xl bg-primary hover:bg-primary/90 flex-shrink-0"
         >
           <FaPaperPlane className="h-4 w-4" />
           <span className="sr-only">Send message</span>
