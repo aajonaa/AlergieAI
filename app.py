@@ -1,5 +1,7 @@
 import streamlit as st
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError
+
+st.set_page_config(page_title="AlergieAI Chat", page_icon="🤖")
 
 # 1. Connect to YOUR local backend
 # We point the "OpenAI" client to your vLLM server
@@ -8,7 +10,23 @@ client = OpenAI(
     api_key="dummy-key" # vLLM doesn't check keys by default
 )
 
-st.title("🤖 AlergieAI Chat (Local Qwen)")
+@st.cache_data(ttl=60)
+def get_model_name():
+    try:
+        models = client.models.list()
+        return models.data[0].id
+    except APIConnectionError:
+        return None
+    except Exception:
+        return "Qwen/Qwen2.5-1.5B-Instruct" # Fallback
+
+st.title("🤖 AlergieAI Chat (Local)")
+
+# Check connection
+model_name = get_model_name()
+if not model_name:
+    st.error("⚠️ Could not connect to the local vLLM server. Please make sure `./start_vllm.sh` is running.")
+    st.stop()
 
 # 2. Initialize chat history
 if "messages" not in st.session_state:
@@ -28,14 +46,18 @@ if prompt := st.chat_input("What is up?"):
 
     # Call your local AI
     with st.chat_message("assistant"):
-        stream = client.chat.completions.create(
-            model="Qwen/Qwen2.5-7B-Instruct-AWQ", # Must match your vLLM model name
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
-        response = st.write_stream(stream)
-    
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        try:
+            stream = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.messages
+                ],
+                stream=True,
+            )
+            response = st.write_stream(stream)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+        except APIConnectionError:
+            st.error("Connection lost to the vLLM server.")
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
