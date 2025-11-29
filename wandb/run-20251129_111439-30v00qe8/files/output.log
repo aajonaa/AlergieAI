@@ -1,0 +1,35 @@
+Loading model: Qwen/Qwen2.5-1.5B-Instruct
+trainable params: 73,859,072 || all params: 1,617,573,376 || trainable%: 4.5660
+Loading dataset from: training/data/allergy_dataset_gemini.jsonl
+Dataset loaded with 1000 examples
+Applying formatting function to train dataset: 100%|████████████████████████████████████████| 900/900 [00:00<00:00, 15849.43 examples/s]
+Adding EOS to train dataset:   0%|                                                                       | 0/900 [00:00<?, ? examples/s]
+Traceback (most recent call last):
+  File "/home/jona/AlergieAI/training/train_qlora.py", line 443, in <module>
+    main()
+  File "/home/jona/AlergieAI/training/train_qlora.py", line 404, in main
+    trainer = SFTTrainer(
+              ^^^^^^^^^^^
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/trl/trainer/sft_trainer.py", line 805, in __init__
+    train_dataset = self._prepare_dataset(
+                    ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/trl/trainer/sft_trainer.py", line 938, in _prepare_dataset
+    dataset = dataset.map(
+              ^^^^^^^^^^^^
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 562, in wrapper
+    out: Union["Dataset", "DatasetDict"] = func(self, *args, **kwargs)
+                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3341, in map
+    for rank, done, content in Dataset._map_single(**unprocessed_kwargs):
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3673, in _map_single
+    for i, example in iter_outputs(shard_iterable):
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3647, in iter_outputs
+    yield i, apply_function(example, i, offset=offset)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/datasets/arrow_dataset.py", line 3570, in apply_function
+    processed_inputs = function(*fn_args, *additional_args, **fn_kwargs)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jona/AlergieAI/.venv/lib/python3.12/site-packages/trl/trainer/sft_trainer.py", line 932, in add_eos
+    if "text" in example and not example["text"].endswith(eos_token):  # language modeling case
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'list' object has no attribute 'endswith'

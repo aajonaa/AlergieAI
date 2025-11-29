@@ -1,0 +1,64 @@
+{
+  "os": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "CPython 3.12.3",
+  "startedAt": "2025-11-29T03:13:17.088697Z",
+  "args": [
+    "--model_name",
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "--dataset_path",
+    "training/data/allergy_dataset_gemini.jsonl",
+    "--output_dir",
+    "./outputs/allergy-ai-qlora",
+    "--max_seq_length",
+    "2048",
+    "--lora_r",
+    "64",
+    "--lora_alpha",
+    "128",
+    "--lora_dropout",
+    "0.05",
+    "--num_train_epochs",
+    "3",
+    "--per_device_train_batch_size",
+    "4",
+    "--gradient_accumulation_steps",
+    "4",
+    "--learning_rate",
+    "2e-4",
+    "--use_wandb"
+  ],
+  "program": "/home/jona/AlergieAI/training/train_qlora.py",
+  "codePath": "training/train_qlora.py",
+  "codePathLocal": "training/train_qlora.py",
+  "git": {
+    "remote": "git@github.com:aajonaa/AlergieAI.git",
+    "commit": "70622e8dc2ad29a7aed0aeb7fca8223eb9099861"
+  },
+  "email": "wj15909447527@gmail.com",
+  "root": "/home/jona/AlergieAI",
+  "host": "Jona",
+  "executable": "/home/jona/AlergieAI/.venv/bin/python",
+  "cpu_count": 10,
+  "cpu_count_logical": 20,
+  "gpu": "NVIDIA GeForce RTX 4070 Ti SUPER",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1081101176832",
+      "used": "97864429568"
+    }
+  },
+  "memory": {
+    "total": "29426368512"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 4070 Ti SUPER",
+      "memoryTotal": "17171480576",
+      "architecture": "Ada",
+      "uuid": "GPU-0cd1da75-8117-9889-16af-1006d43e7f13"
+    }
+  ],
+  "cudaVersion": "12.6",
+  "writerId": "3dj91cuhy5q31wxdm1m4631jmqckh3dj"
+}

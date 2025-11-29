@@ -1,0 +1,17 @@
+Loading model: Qwen/Qwen2.5-1.5B-Instruct
+trainable params: 73,859,072 || all params: 1,617,573,376 || trainable%: 4.5660
+Loading dataset from: training/data/allergy_dataset_gemini.jsonl
+Dataset loaded with 1000 examples
+
+============================================================
+Starting QLoRA Fine-tuning
+============================================================
+Model: Qwen/Qwen2.5-1.5B-Instruct
+LoRA Rank: 64
+LoRA Alpha: 128
+Learning Rate: 0.0002
+Batch Size: 4 x 4 = 16
+Epochs: 3
+============================================================
+The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
+  4%|███▍                                                                                               | 6/171 [01:12<27:54, 10.15s/it]

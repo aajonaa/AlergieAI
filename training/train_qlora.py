@@ -160,6 +160,9 @@ def load_model_and_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = tokenizer.eos_token_id
     
+    # Set truncation
+    tokenizer.truncation_side = "left"
+    
     return model, tokenizer
 
 
@@ -238,15 +241,18 @@ def load_and_prepare_dataset(
     
     print(f"Dataset loaded with {len(dataset)} examples")
     
-    # Format dataset
-    def formatting_func(examples):
-        return [format_chat_message({"instruction": inst, "input": inp, "output": out, "system": sys}, tokenizer) 
-                for inst, inp, out, sys in zip(
-                    examples.get("instruction", [""] * len(examples["output"])),
-                    examples.get("input", [""] * len(examples["output"])),
-                    examples["output"],
-                    examples.get("system", [""] * len(examples["output"]))
-                )]
+    # Format single example and add "text" column (required by new TRL API)
+    def add_text_column(example):
+        text = format_chat_message({
+            "instruction": example.get("instruction", ""),
+            "input": example.get("input", ""),
+            "output": example.get("output", ""),
+            "system": example.get("system", "")
+        }, tokenizer)
+        return {"text": text}
+    
+    # Add text column to dataset
+    dataset = dataset.map(add_text_column)
     
     # Split into train and validation
     if data_args.validation_split > 0:
@@ -254,9 +260,9 @@ def load_and_prepare_dataset(
             test_size=data_args.validation_split,
             seed=42
         )
-        return split_dataset["train"], split_dataset["test"], formatting_func
+        return split_dataset["train"], split_dataset["test"]
     
-    return dataset, None, formatting_func
+    return dataset, None
 
 
 def main():
@@ -363,11 +369,11 @@ def main():
     model.print_trainable_parameters()
     
     # Load dataset
-    train_dataset, eval_dataset, formatting_func = load_and_prepare_dataset(
+    train_dataset, eval_dataset = load_and_prepare_dataset(
         data_args, tokenizer
     )
     
-    # Create training arguments using SFTConfig
+    # Create training arguments
     training_args = SFTConfig(
         output_dir=args.output_dir,
         num_train_epochs=args.num_train_epochs,
@@ -390,10 +396,12 @@ def main():
         lr_scheduler_type="cosine",
         seed=args.seed,
         report_to="wandb" if args.use_wandb else "none",
-        max_seq_length=args.max_seq_length,
         packing=False,  # Disable packing for chat format
-        dataset_text_field=None,  # We use formatting_func instead
+        dataset_text_field="text",  # Use the "text" column we created
     )
+    
+    # Set max sequence length
+    tokenizer.model_max_length = args.max_seq_length
     
     # Create trainer
     trainer = SFTTrainer(
@@ -402,7 +410,6 @@ def main():
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         processing_class=tokenizer,
-        formatting_func=formatting_func,
     )
     
     # Train

@@ -1,0 +1,11 @@
+{"time":"2025-11-29T11:16:49.932458806+08:00","level":"INFO","msg":"stream: starting","core version":"0.23.0"}
+{"time":"2025-11-29T11:16:51.130869962+08:00","level":"INFO","msg":"stream: created new stream","id":"cegx3dpu"}
+{"time":"2025-11-29T11:16:51.130934421+08:00","level":"INFO","msg":"handler: started","stream_id":"cegx3dpu"}
+{"time":"2025-11-29T11:16:51.130982923+08:00","level":"INFO","msg":"stream: started","id":"cegx3dpu"}
+{"time":"2025-11-29T11:16:51.13098073+08:00","level":"INFO","msg":"writer: started","stream_id":"cegx3dpu"}
+{"time":"2025-11-29T11:16:51.130993008+08:00","level":"INFO","msg":"sender: started","stream_id":"cegx3dpu"}
+{"time":"2025-11-29T11:16:58.915918801+08:00","level":"INFO","msg":"stream: closing","id":"cegx3dpu"}
+{"time":"2025-11-29T11:16:59.663049538+08:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-11-29T11:17:00.332821858+08:00","level":"INFO","msg":"handler: closed","stream_id":"cegx3dpu"}
+{"time":"2025-11-29T11:17:00.33288272+08:00","level":"INFO","msg":"sender: closed","stream_id":"cegx3dpu"}
+{"time":"2025-11-29T11:17:00.332887585+08:00","level":"INFO","msg":"stream: closed","id":"cegx3dpu"}
