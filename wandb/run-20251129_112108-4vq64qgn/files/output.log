@@ -14,4 +14,6 @@ Batch Size: 4 x 4 = 16
 Epochs: 3
 ============================================================
 The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
-  4%|███▍                                                                                               | 6/171 [01:12<27:54, 10.15s/it]
+  9%|████████▌                                                                                         | 15/171 [01:44<09:43,  3.74s/it]
+
+{'loss': 1.4716, 'grad_norm': 0.7213256359100342, 'learning_rate': 0.0001, 'entropy': 1.4661821216344832, 'num_tokens': 79970.0, 'mean_token_accuracy': 0.6292973190546036, 'epoch': 0.18}
