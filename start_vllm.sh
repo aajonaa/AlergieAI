@@ -8,10 +8,10 @@ export HF_ENDPOINT="https://hf-mirror.com"
 # User requested to use 1 GPU. We select the first one (index 0).
 export CUDA_VISIBLE_DEVICES=0
 
-# Model to use. You can change this to any HuggingFace model ID.
-# Using a small model for demonstration/testing purposes.
-# MODEL_NAME="Qwen/Qwen2.5-1.5B-Instruct"
-MODEL_NAME="./outputs/allergy-ai-merged"
+# Model options:
+# MODEL_NAME="nlpie/Llama2-MedTuned-7b"        # Bad chat format, produces garbage
+# MODEL_NAME="BioMistral/BioMistral-7B"        # Base model, needs fine-tuning
+MODEL_NAME="./outputs/allergy-ai-merged"       # Your fine-tuned allergy model (1.5B, works well!)
 
 # Path to python in the virtual environment
 PYTHON_EXEC=".venv/bin/python"
@@ -27,9 +27,11 @@ echo "----------------------------------------------------------------"
 # Run vLLM server
 # --trust-remote-code is often needed for newer models
 # --port 8000 is the default
-# --gpu-memory-utilization 0.85 to leave some memory for other processes
+# --gpu-memory-utilization 0.90 to leave some memory for other processes
+# --max-model-len 1024 to fit KV cache in available GPU memory
 $PYTHON_EXEC -m vllm.entrypoints.openai.api_server \
     --model $MODEL_NAME \
     --trust-remote-code \
     --port 8000 \
-    --gpu-memory-utilization 0.85
+    --gpu-memory-utilization 0.90 \
+    --max-model-len 4096
