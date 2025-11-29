@@ -39,9 +39,10 @@ BATCH_SIZE=4
 GRAD_ACCUM_STEPS=4
 LEARNING_RATE=2e-4
 
-# Mirrors (for faster download in certain regions)
+# Mirrors (for faster download / bypass network issues)
 export UV_PYPI_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple"
 export HF_ENDPOINT="https://hf-mirror.com"
+export HF_HUB_OFFLINE=0  # Set to 1 if you want fully offline mode (models must be cached)
 
 # Python executable
 PYTHON_EXEC=".venv/bin/python"

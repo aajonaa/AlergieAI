@@ -1,0 +1,16 @@
+[server]
+# Disable file watcher for better performance
+fileWatcherType = "none"
+
+[browser]
+# Don't automatically open browser
+serverAddress = "localhost"
+
+[theme]
+# Use system fonts instead of Google Fonts
+font = "sans serif"
+
+[client]
+# Disable external resources that require Google connection
+showErrorDetails = true
+

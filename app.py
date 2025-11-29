@@ -3,6 +3,16 @@ from openai import OpenAI, APIConnectionError
 
 st.set_page_config(page_title="AlergieAI Chat", page_icon="🤖")
 
+# Use local system fonts (no Google Fonts required)
+st.markdown("""
+<style>
+    @import url('data:text/css,');
+    * {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # 1. Connect to YOUR local backend
 # We point the "OpenAI" client to your vLLM server
 client = OpenAI(
