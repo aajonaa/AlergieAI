@@ -19,7 +19,8 @@ CHECKPOINT_EVERY=50
 # Load environment variables from config.env file
 if [ -f "training/config.env" ]; then
     echo "Loading environment from training/config.env..."
-    export $(grep -v '^#' training/config.env | xargs)
+    # Remove Windows carriage returns and export
+    export $(grep -v '^#' training/config.env | tr -d '\r' | xargs)
 fi
 
 # Check for API key
@@ -27,7 +28,7 @@ if [ -z "$GEMINI_API_KEY" ] || [ "$GEMINI_API_KEY" = "your-gemini-api-key-here" 
     echo "❌ Error: GEMINI_API_KEY not set"
     echo ""
     echo "Please edit training/config.env and add your API key:"
-    echo "  GEMINI_API_KEY=your-actual-key"
+    echo "  Get your key from: https://aistudio.google.com/app/apikey"
     echo ""
     exit 1
 fi
@@ -38,15 +39,15 @@ echo "=================================================================="
 echo ""
 echo "  Samples to generate: $NUM_SAMPLES"
 echo "  Output: $OUTPUT_FILE"
-echo "  API: Gemini 2.5 Flash Lite"
+echo "  API: Google AI Studio (gemini-2.0-flash-exp)"
 echo ""
 echo "=================================================================="
 echo ""
 
-# Check if requests is installed
-if ! python -c "import requests" 2>/dev/null; then
-    echo "Installing requests..."
-    pip install requests
+# Check if openai is installed
+if ! python -c "import openai" 2>/dev/null; then
+    echo "Installing openai..."
+    pip install openai
 fi
 
 # Run generator

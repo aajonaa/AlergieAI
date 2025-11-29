@@ -1,0 +1,12 @@
+Loading model: Qwen/Qwen2.5-1.5B-Instruct
+trainable params: 73,859,072 || all params: 1,617,573,376 || trainable%: 4.5660
+Loading dataset from: training/data/allergy_dataset_gemini.jsonl
+Generating train split: 1000 examples [00:00, 57982.83 examples/s]
+Dataset loaded with 1000 examples
+Traceback (most recent call last):
+  File "/home/jona/AlergieAI/training/train_qlora.py", line 438, in <module>
+    main()
+  File "/home/jona/AlergieAI/training/train_qlora.py", line 371, in main
+    training_args = SFTConfig(
+                    ^^^^^^^^^^
+TypeError: SFTConfig.__init__() got an unexpected keyword argument 'max_seq_length'

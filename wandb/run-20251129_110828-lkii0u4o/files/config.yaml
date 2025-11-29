@@ -1,0 +1,129 @@
+_wandb:
+    value:
+        cli_version: 0.23.0
+        e:
+            k9ffbf6szccfog7hu6imnazfjqsibpj2:
+                args:
+                    - --model_name
+                    - Qwen/Qwen2.5-1.5B-Instruct
+                    - --dataset_path
+                    - training/data/allergy_dataset_gemini.jsonl
+                    - --output_dir
+                    - ./outputs/allergy-ai-qlora
+                    - --max_seq_length
+                    - "2048"
+                    - --lora_r
+                    - "64"
+                    - --lora_alpha
+                    - "128"
+                    - --lora_dropout
+                    - "0.05"
+                    - --num_train_epochs
+                    - "3"
+                    - --per_device_train_batch_size
+                    - "4"
+                    - --gradient_accumulation_steps
+                    - "4"
+                    - --learning_rate
+                    - "2e-4"
+                    - --use_wandb
+                codePath: training/train_qlora.py
+                codePathLocal: training/train_qlora.py
+                cpu_count: 10
+                cpu_count_logical: 20
+                cudaVersion: "12.6"
+                disk:
+                    /:
+                        total: "1081101176832"
+                        used: "97860640768"
+                email: wj15909447527@gmail.com
+                executable: /home/jona/AlergieAI/.venv/bin/python
+                git:
+                    commit: 87da1850fb969299cbfb4add06583358edf80b98
+                    remote: git@github.com:aajonaa/AlergieAI.git
+                gpu: NVIDIA GeForce RTX 4070 Ti SUPER
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      memoryTotal: "17171480576"
+                      name: NVIDIA GeForce RTX 4070 Ti SUPER
+                      uuid: GPU-0cd1da75-8117-9889-16af-1006d43e7f13
+                host: Jona
+                memory:
+                    total: "29426368512"
+                os: Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39
+                program: /home/jona/AlergieAI/training/train_qlora.py
+                python: CPython 3.12.3
+                root: /home/jona/AlergieAI
+                startedAt: "2025-11-29T03:08:28.225874Z"
+                writerId: k9ffbf6szccfog7hu6imnazfjqsibpj2
+        m: []
+        python_version: 3.12.3
+        t:
+            "1":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 51
+                - 71
+                - 84
+                - 98
+            "2":
+                - 1
+                - 11
+                - 41
+                - 49
+                - 51
+                - 71
+                - 84
+                - 98
+            "3":
+                - 16
+            "4": 3.12.3
+            "5": 0.23.0
+            "6": 4.57.1
+            "12": 0.23.0
+            "13": linux-x86_64
+dataset_path:
+    value: training/data/allergy_dataset_gemini.jsonl
+eval_steps:
+    value: 100
+gradient_accumulation_steps:
+    value: 4
+learning_rate:
+    value: 0.0002
+logging_steps:
+    value: 10
+lora_alpha:
+    value: 128
+lora_dropout:
+    value: 0.05
+lora_r:
+    value: 64
+max_seq_length:
+    value: 2048
+model_name:
+    value: Qwen/Qwen2.5-1.5B-Instruct
+num_train_epochs:
+    value: 3
+output_dir:
+    value: ./outputs/allergy-ai-qlora
+per_device_eval_batch_size:
+    value: 4
+per_device_train_batch_size:
+    value: 4
+save_steps:
+    value: 100
+seed:
+    value: 42
+use_flash_attention:
+    value: false
+use_wandb:
+    value: true
+validation_split:
+    value: 0.1
+wandb_project:
+    value: allergy-ai
+warmup_ratio:
+    value: 0.1

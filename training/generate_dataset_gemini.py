@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Gemini-Powered Training Dataset Generator for AlergieAI
+Training Dataset Generator for AlergieAI
 
 Generates high-quality, consistent-length Q&A pairs about allergies
-using Google's Gemini 2.5 Flash Lite API.
+using OpenAI-compatible API.
 
 Usage:
     export GEMINI_API_KEY="your-api-key"
@@ -17,15 +17,16 @@ import random
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
 
-import requests
+from openai import OpenAI
 
 # =============================================================================
 # Configuration
 # =============================================================================
 
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent"
+# API Configuration (Google AI Studio)
+API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+MODEL_NAME = "gemini-2.0-flash-lite"
 
 # System prompt for the allergy expert
 ALLERGY_EXPERT_SYSTEM_PROMPT = """You are AlergieAI, a world-class allergist and immunologist with 25+ years of clinical experience. You specialize in:
@@ -45,7 +46,7 @@ Guidelines:
 5. Include practical, actionable advice when appropriate
 6. Mention emergency procedures when discussing severe reactions"""
 
-# Target response length (tokens roughly = words * 1.3)
+# Target response length
 TARGET_ANSWER_LENGTH = "200-350 words"
 TARGET_QUESTION_LENGTH = "10-30 words"
 
@@ -92,105 +93,55 @@ ALLERGY_TOPICS = [
     "outgrowing allergies", "allergy prevention in infants"
 ]
 
-# Question types for diversity
-QUESTION_TYPES = [
-    "What is/are {topic}?",
-    "What causes {topic}?",
-    "What are the symptoms of {topic}?",
-    "How is {topic} diagnosed?",
-    "How is {topic} treated?",
-    "How can I manage {topic}?",
-    "What should I avoid with {topic}?",
-    "Can you outgrow {topic}?",
-    "Is {topic} dangerous?",
-    "What triggers {topic}?",
-    "How do I know if I have {topic}?",
-    "What's the difference between {topic} and food intolerance?",
-    "How common is {topic}?",
-    "Can {topic} be cured?",
-    "What foods contain hidden {topic}?",
-    "How do I explain {topic} to others?",
-    "What emergency steps should I take for {topic}?",
-    "Are there new treatments for {topic}?",
-    "How do I prepare for a reaction from {topic}?",
-    "What tests are used for {topic}?",
-]
-
 # =============================================================================
-# Gemini API Functions
+# API Functions
 # =============================================================================
 
-def call_gemini_api(prompt: str, api_key: str, system_prompt: str = None, max_retries: int = 3) -> str:
-    """Call the Gemini API with retry logic."""
+def setup_client(api_key: str) -> OpenAI:
+    """Create OpenAI client with custom base URL."""
+    return OpenAI(
+        api_key=api_key,
+        base_url=API_BASE_URL,
+    )
+
+
+def call_api(client: OpenAI, prompt: str, system_prompt: str = None, max_retries: int = 3) -> str:
+    """Call the API with retry logic."""
     
-    headers = {
-        "Content-Type": "application/json",
-    }
-    
-    # Build the request
-    contents = []
-    
-    # Add system instruction if provided
-    system_instruction = None
+    messages = []
     if system_prompt:
-        system_instruction = {
-            "parts": [{"text": system_prompt}]
-        }
-    
-    contents.append({
-        "role": "user",
-        "parts": [{"text": prompt}]
-    })
-    
-    data = {
-        "contents": contents,
-        "generationConfig": {
-            "temperature": 0.8,
-            "topP": 0.95,
-            "maxOutputTokens": 1024,
-        }
-    }
-    
-    if system_instruction:
-        data["systemInstruction"] = system_instruction
-    
-    url = f"{GEMINI_API_URL}?key={api_key}"
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
     
     for attempt in range(max_retries):
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=60)
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=messages,
+                temperature=0.8,
+                max_tokens=1024,
+            )
+            if response.choices and response.choices[0].message.content:
+                return response.choices[0].message.content.strip()
+            return ""
             
-            if response.status_code == 200:
-                result = response.json()
-                # Extract text from response
-                if "candidates" in result and len(result["candidates"]) > 0:
-                    candidate = result["candidates"][0]
-                    if "content" in candidate and "parts" in candidate["content"]:
-                        return candidate["content"]["parts"][0].get("text", "")
-                return ""
-            
-            elif response.status_code == 429:
-                # Rate limited - wait and retry
-                wait_time = (attempt + 1) * 10
-                print(f"  Rate limited, waiting {wait_time}s...")
-                time.sleep(wait_time)
-                continue
-            
-            else:
-                print(f"  API error {response.status_code}: {response.text[:200]}")
-                time.sleep(2)
-                
-        except requests.exceptions.Timeout:
-            print(f"  Timeout, retrying...")
-            time.sleep(5)
         except Exception as e:
-            print(f"  Error: {e}")
-            time.sleep(2)
+            error_msg = str(e)
+            if "429" in error_msg or "rate" in error_msg.lower():
+                wait_time = (attempt + 1) * 10
+                print(f"\n  Rate limited, waiting {wait_time}s...")
+                time.sleep(wait_time)
+            elif "500" in error_msg or "503" in error_msg:
+                print(f"\n  Server error, retrying...")
+                time.sleep(2)
+            else:
+                print(f"\n  Error: {error_msg[:100]}")
+                time.sleep(1)
     
     return ""
 
 
-def generate_question(topic: str, api_key: str, used_questions: set) -> str:
+def generate_question(client: OpenAI, topic: str, used_questions: set) -> str:
     """Generate a unique question about a topic."""
     
     prompt = f"""Generate ONE specific, practical question that a patient might ask their allergist about: {topic}
@@ -204,23 +155,25 @@ Requirements:
 
 Output ONLY the question, nothing else."""
 
-    for _ in range(3):  # Try up to 3 times for uniqueness
-        question = call_gemini_api(prompt, api_key)
+    for _ in range(3):
+        question = call_api(client, prompt)
         question = question.strip().strip('"').strip("'")
         
-        # Clean up the question
-        if question and question not in used_questions:
-            # Ensure it ends with ?
+        if question and question.lower() not in used_questions:
             if not question.endswith("?"):
                 question += "?"
             return question
     
-    # Fallback: generate from template
-    template = random.choice(QUESTION_TYPES)
-    return template.format(topic=topic)
+    # Fallback
+    templates = [
+        f"What are the symptoms of {topic}?",
+        f"How is {topic} diagnosed?",
+        f"What treatments are available for {topic}?",
+    ]
+    return random.choice(templates)
 
 
-def generate_answer(question: str, api_key: str) -> str:
+def generate_answer(client: OpenAI, question: str) -> str:
     """Generate a consistent-length answer to a question."""
     
     prompt = f"""Answer this patient question as an expert allergist:
@@ -237,16 +190,15 @@ Requirements:
 
 Provide your answer:"""
 
-    answer = call_gemini_api(prompt, api_key, ALLERGY_EXPERT_SYSTEM_PROMPT)
-    return answer.strip()
+    return call_api(client, prompt, ALLERGY_EXPERT_SYSTEM_PROMPT)
 
 
-def validate_qa_length(question: str, answer: str, min_q_words: int = 5, max_q_words: int = 50,
+def validate_qa_length(question: str, answer: str, 
+                       min_q_words: int = 5, max_q_words: int = 50,
                        min_a_words: int = 150, max_a_words: int = 450) -> bool:
     """Validate Q&A pair has appropriate length."""
     q_words = len(question.split())
     a_words = len(answer.split())
-    
     return (min_q_words <= q_words <= max_q_words and 
             min_a_words <= a_words <= max_a_words)
 
@@ -264,13 +216,30 @@ def generate_dataset(
     """Generate the training dataset."""
     
     print("=" * 70)
-    print("  AlergieAI Training Dataset Generator (Gemini)")
+    print("  AlergieAI Training Dataset Generator")
     print("=" * 70)
-    print(f"\n  Target samples: {num_samples}")
+    print(f"\n  API: {API_BASE_URL}")
+    print(f"  Model: {MODEL_NAME}")
+    print(f"  Target samples: {num_samples}")
     print(f"  Output: {output_path}")
     print(f"  Question length: {TARGET_QUESTION_LENGTH}")
     print(f"  Answer length: {TARGET_ANSWER_LENGTH}")
     print("=" * 70 + "\n")
+    
+    # Setup client
+    print("Initializing API client...")
+    client = setup_client(api_key)
+    
+    # Test connection
+    try:
+        test_response = call_api(client, "Say 'OK' if you can hear me.")
+        if not test_response:
+            print("❌ Failed to connect to API")
+            return None
+        print(f"✅ Connected to {MODEL_NAME}\n")
+    except Exception as e:
+        print(f"❌ API connection error: {e}")
+        return None
     
     # Create output directory
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -298,39 +267,34 @@ def generate_dataset(
     # Open file for appending
     with open(output_path, 'a', encoding='utf-8') as f:
         
-        sample_idx = len(existing_data)
-        
         while stats["generated"] < num_samples:
-            # Pick a random topic
             topic = random.choice(ALLERGY_TOPICS)
             
-            # Progress indicator
             progress = (stats["generated"] / num_samples) * 100
             print(f"\r[{progress:5.1f}%] Generating sample {stats['generated']+1}/{num_samples} (topic: {topic})...", end="")
             sys.stdout.flush()
             
             try:
                 # Generate question
-                question = generate_question(topic, api_key, used_questions)
+                question = generate_question(client, topic, used_questions)
                 if not question:
                     stats["failed"] += 1
                     continue
                 
                 # Generate answer
-                answer = generate_answer(question, api_key)
+                answer = generate_answer(client, question)
                 if not answer:
                     stats["failed"] += 1
                     continue
                 
-                # Validate length consistency
+                # Validate length
                 if not validate_qa_length(question, answer):
                     stats["length_rejected"] += 1
-                    # Try to regenerate with stricter prompt
-                    answer = generate_answer(question, api_key)
+                    answer = generate_answer(client, question)
                     if not validate_qa_length(question, answer):
                         continue
                 
-                # Create the example
+                # Create example
                 example = {
                     "instruction": question,
                     "input": "",
@@ -343,26 +307,24 @@ def generate_dataset(
                     }
                 }
                 
-                # Save immediately (crash-resistant)
+                # Save immediately
                 f.write(json.dumps(example, ensure_ascii=False) + "\n")
                 f.flush()
                 
-                # Track
                 used_questions.add(question.lower())
                 stats["generated"] += 1
-                sample_idx += 1
                 
-                # Checkpoint summary
+                # Checkpoint
                 if stats["generated"] % checkpoint_every == 0:
                     elapsed = (datetime.now() - stats["start_time"]).total_seconds()
-                    rate = stats["generated"] / max(elapsed, 1) * 3600  # per hour
-                    eta = (num_samples - stats["generated"]) / max(rate, 1)
+                    rate = (stats["generated"] - len(existing_data)) / max(elapsed, 1) * 3600
+                    remaining = num_samples - stats["generated"]
+                    eta = remaining / max(rate, 1) if rate > 0 else 0
                     print(f"\n  ✓ Checkpoint: {stats['generated']} samples | "
                           f"Rate: {rate:.0f}/hr | ETA: {eta:.1f}hr | "
-                          f"Failed: {stats['failed']} | Length rejected: {stats['length_rejected']}")
+                          f"Failed: {stats['failed']} | Rejected: {stats['length_rejected']}")
                 
-                # Rate limiting - be nice to the API
-                time.sleep(0.5)
+                time.sleep(0.3)
                 
             except KeyboardInterrupt:
                 print("\n\n⚠️  Interrupted! Progress saved.")
@@ -384,19 +346,6 @@ def generate_dataset(
     elapsed = (datetime.now() - stats["start_time"]).total_seconds() / 60
     print(f"  Time: {elapsed:.1f} minutes")
     print("=" * 70)
-    
-    # Print sample
-    if stats["generated"] > 0:
-        print("\n📝 Sample from generated data:\n")
-        with open(output_path, 'r', encoding='utf-8') as f:
-            last_lines = f.readlines()[-3:]
-            for i, line in enumerate(last_lines, 1):
-                item = json.loads(line)
-                print(f"Example {i}:")
-                print(f"  Q: {item['instruction']}")
-                print(f"  A: {item['output'][:150]}...")
-                print(f"  Length: {item['metadata']['q_words']} / {item['metadata']['a_words']} words")
-                print()
     
     return stats
 
@@ -420,7 +369,6 @@ def analyze_dataset(path: str):
         print("No data found!")
         return
     
-    # Length statistics
     q_lengths = [len(d['instruction'].split()) for d in data]
     a_lengths = [d.get('metadata', {}).get('a_words', len(d['output'].split())) for d in data]
     
@@ -430,7 +378,6 @@ def analyze_dataset(path: str):
     print(f"\nAnswer length (words):")
     print(f"  Min: {min(a_lengths)}, Max: {max(a_lengths)}, Avg: {sum(a_lengths)/len(a_lengths):.1f}")
     
-    # Topic distribution
     topics = {}
     for d in data:
         topic = d.get('metadata', {}).get('topic', 'unknown')
@@ -440,7 +387,6 @@ def analyze_dataset(path: str):
     for topic, count in sorted(topics.items(), key=lambda x: -x[1])[:10]:
         print(f"  {topic}: {count} ({100*count/len(data):.1f}%)")
     
-    # Length variance (lower is better for fine-tuning)
     import statistics
     a_variance = statistics.stdev(a_lengths) if len(a_lengths) > 1 else 0
     print(f"\nAnswer length std dev: {a_variance:.1f} words")
@@ -452,19 +398,15 @@ def analyze_dataset(path: str):
         print("  ❌ High variance - may affect fine-tuning quality")
 
 
-# =============================================================================
-# Main
-# =============================================================================
-
 def main():
-    parser = argparse.ArgumentParser(description="Generate allergy Q&A dataset using Gemini")
+    parser = argparse.ArgumentParser(description="Generate allergy Q&A dataset")
     
     parser.add_argument("--num_samples", type=int, default=1000,
                         help="Number of Q&A samples to generate")
     parser.add_argument("--output", type=str, default="training/data/allergy_dataset_gemini.jsonl",
                         help="Output JSONL file path")
     parser.add_argument("--api_key", type=str, default=None,
-                        help="Gemini API key (or set GEMINI_API_KEY env var)")
+                        help="API key (or set GEMINI_API_KEY env var)")
     parser.add_argument("--analyze", action="store_true",
                         help="Analyze existing dataset instead of generating")
     parser.add_argument("--checkpoint_every", type=int, default=50,
@@ -476,16 +418,11 @@ def main():
         analyze_dataset(args.output)
         return
     
-    # Get API key
     api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        print("❌ Error: Please provide Gemini API key via --api_key or GEMINI_API_KEY env var")
-        print("\nUsage:")
-        print("  export GEMINI_API_KEY='your-key'")
-        print("  python training/generate_dataset_gemini.py --num_samples 1000")
+        print("❌ Error: Please provide API key via --api_key or GEMINI_API_KEY env var")
         sys.exit(1)
     
-    # Generate dataset
     generate_dataset(
         api_key=api_key,
         num_samples=args.num_samples,
@@ -493,11 +430,9 @@ def main():
         checkpoint_every=args.checkpoint_every,
     )
     
-    # Auto-analyze after generation
     print("\n" + "=" * 70)
     analyze_dataset(args.output)
 
 
 if __name__ == "__main__":
     main()
-
