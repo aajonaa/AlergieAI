@@ -1,2 +1,3 @@
 training/config.env
 wandb/
+outputs/

@@ -14,6 +14,34 @@ Batch Size: 4 x 4 = 16
 Epochs: 3
 ============================================================
 The tokenizer has new PAD/BOS/EOS tokens that differ from the model config and generation config. The model config and generation config were aligned accordingly, being updated with the tokenizer's values. Updated tokens: {'bos_token_id': None, 'pad_token_id': 151643}.
-  9%|████████▌                                                                                         | 15/171 [01:44<09:43,  3.74s/it]
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████| 171/171 [11:10<00:00,  3.92s/it]
 
 {'loss': 1.4716, 'grad_norm': 0.7213256359100342, 'learning_rate': 0.0001, 'entropy': 1.4661821216344832, 'num_tokens': 79970.0, 'mean_token_accuracy': 0.6292973190546036, 'epoch': 0.18}
+{'loss': 1.0468, 'grad_norm': 0.5318796634674072, 'learning_rate': 0.00019997891995035912, 'entropy': 1.0518924325704575, 'num_tokens': 159608.0, 'mean_token_accuracy': 0.7080289080739022, 'epoch': 0.36}
+{'loss': 0.9621, 'grad_norm': 0.448557049036026, 'learning_rate': 0.00019746005004415005, 'entropy': 0.9640622958540916, 'num_tokens': 240379.0, 'mean_token_accuracy': 0.7289460986852646, 'epoch': 0.53}
+{'loss': 0.928, 'grad_norm': 0.3988890051841736, 'learning_rate': 0.00019084652718195238, 'entropy': 0.9325216770172119, 'num_tokens': 320761.0, 'mean_token_accuracy': 0.7338424295186996, 'epoch': 0.71}
+{'loss': 0.8974, 'grad_norm': 0.5238233804702759, 'learning_rate': 0.00018041620963415417, 'entropy': 0.9011883124709129, 'num_tokens': 401184.0, 'mean_token_accuracy': 0.740938825905323, 'epoch': 0.89}
+{'loss': 0.8601, 'grad_norm': 0.400365948677063, 'learning_rate': 0.00016660731316772505, 'entropy': 0.8888376629030382, 'num_tokens': 476211.0, 'mean_token_accuracy': 0.7528448394826941, 'epoch': 1.05}
+{'loss': 0.7452, 'grad_norm': 0.43143409490585327, 'learning_rate': 0.00015000000000000001, 'entropy': 0.7566376641392708, 'num_tokens': 556038.0, 'mean_token_accuracy': 0.7757113829255105, 'epoch': 1.23}
+{'loss': 0.727, 'grad_norm': 0.451325923204422, 'learning_rate': 0.00013129200406321545, 'entropy': 0.7441912114620208, 'num_tokens': 636405.0, 'mean_token_accuracy': 0.7790855720639229, 'epoch': 1.41}
+{'loss': 0.7225, 'grad_norm': 0.43597954511642456, 'learning_rate': 0.00011126931665153212, 'entropy': 0.7335414096713067, 'num_tokens': 715996.0, 'mean_token_accuracy': 0.7810801357030869, 'epoch': 1.59}
+{'loss': 0.6961, 'grad_norm': 0.44311389327049255, 'learning_rate': 9.077316405366981e-05, 'entropy': 0.7094230636954307, 'num_tokens': 796666.0, 'mean_token_accuracy': 0.7878388270735741, 'epoch': 1.76}
+                                                                                                                                        
+{'eval_loss': 0.8287466168403625, 'eval_runtime': 7.0519, 'eval_samples_per_second': 14.181, 'eval_steps_per_second': 3.545, 'eval_entropy': 0.7261693811416626, 'eval_num_tokens': 796666.0, 'eval_mean_token_accuracy': 0.7580918121337891, 'epoch': 1.76}
+{'loss': 0.7037, 'grad_norm': 0.4490395784378052, 'learning_rate': 7.066466456151541e-05, 'entropy': 0.7141334176063537, 'num_tokens': 877332.0, 'mean_token_accuracy': 0.7872677609324455, 'epoch': 1.94}
+{'loss': 0.6322, 'grad_norm': 0.44017210602760315, 'learning_rate': 5.178864974296511e-05, 'entropy': 0.6843557019491453, 'num_tokens': 950918.0, 'mean_token_accuracy': 0.8099769788819391, 'epoch': 2.11}
+{'loss': 0.5764, 'grad_norm': 0.4884052872657776, 'learning_rate': 3.493816997957582e-05, 'entropy': 0.5946469157934189, 'num_tokens': 1031835.0, 'mean_token_accuracy': 0.8209756553173065, 'epoch': 2.28}
+{'loss': 0.5713, 'grad_norm': 0.49475839734077454, 'learning_rate': 2.0821175521134207e-05, 'entropy': 0.6085178196430207, 'num_tokens': 1112478.0, 'mean_token_accuracy': 0.821591055393219, 'epoch': 2.46}
+{'loss': 0.5507, 'grad_norm': 0.49020278453826904, 'learning_rate': 1.0030772907835483e-05, 'entropy': 0.6000513941049576, 'num_tokens': 1192257.0, 'mean_token_accuracy': 0.8273073449730873, 'epoch': 2.64}
+{'loss': 0.5596, 'grad_norm': 0.4916844964027405, 'learning_rate': 3.0203063964990617e-06, 'entropy': 0.5894337818026543, 'num_tokens': 1272646.0, 'mean_token_accuracy': 0.8240282148122787, 'epoch': 2.82}
+{'loss': 0.5611, 'grad_norm': 0.5173847675323486, 'learning_rate': 8.43113111936189e-08, 'entropy': 0.5913101643323898, 'num_tokens': 1352361.0, 'mean_token_accuracy': 0.8243385672569274, 'epoch': 3.0}
+{'train_runtime': 670.0642, 'train_samples_per_second': 4.029, 'train_steps_per_second': 0.255, 'train_loss': 0.7750478151597475, 'epoch': 3.0}
+
+Saving final model to ./outputs/allergy-ai-qlora
+
+✅ Training complete!
+Model saved to: ./outputs/allergy-ai-qlora
+
+To use the fine-tuned model:
+  1. Merge adapters: python training/merge_lora.py
+  2. Update start_vllm.sh to point to the merged model
