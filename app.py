@@ -12,13 +12,17 @@ client = OpenAI(
 
 @st.cache_data(ttl=60)
 def get_model_name():
+    """Get model name from vLLM server - no hardcoded fallback."""
     try:
         models = client.models.list()
-        return models.data[0].id
+        if models.data:
+            return models.data[0].id
+        return None
     except APIConnectionError:
         return None
-    except Exception:
-        return "Qwen/Qwen2.5-1.5B-Instruct" # Fallback
+    except Exception as e:
+        st.warning(f"Could not get model name: {e}")
+        return None
 
 st.title("🤖 AlergieAI Chat (Local)")
 

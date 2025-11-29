@@ -10,7 +10,8 @@ export CUDA_VISIBLE_DEVICES=0
 
 # Model to use. You can change this to any HuggingFace model ID.
 # Using a small model for demonstration/testing purposes.
-MODEL_NAME="Qwen/Qwen2.5-1.5B-Instruct"
+# MODEL_NAME="Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_NAME="./outputs/allergy-ai-merged"
 
 # Path to python in the virtual environment
 PYTHON_EXEC=".venv/bin/python"
