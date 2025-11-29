@@ -28,8 +28,34 @@ export default function ChatPage() {
 
   // Prevent hydration mismatch - only show persisted data after client mount
   const [mounted, setMounted] = useState(false)
+  const [modelName, setModelName] = useState<string | null>(null)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
+
+  // Fetch model name from vLLM server on mount
   useEffect(() => {
     setMounted(true)
+    
+    const fetchModelName = async () => {
+      try {
+        const response = await fetch(`${API_URL}/models`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.data && data.data.length > 0) {
+            setModelName(data.data[0].id)
+            setConnectionError(null)
+          }
+        } else {
+          setConnectionError('Could not connect to vLLM server')
+        }
+      } catch {
+        setConnectionError('vLLM server not running. Start with: ./start_vllm.sh')
+      }
+    }
+    
+    fetchModelName()
+    // Refresh model name every 30 seconds
+    const interval = setInterval(fetchModelName, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const currentSession = getCurrentSession()
@@ -74,6 +100,12 @@ export default function ChatPage() {
   }, [])
 
   const handleSendMessage = async (content: string) => {
+    // Check if model is available
+    if (!modelName) {
+      addMessage({ role: 'assistant', content: '⚠️ Cannot connect to vLLM server. Please make sure `./start_vllm.sh` is running.' })
+      return
+    }
+
     // Add user message
     addMessage({ role: 'user', content })
 
@@ -95,7 +127,7 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'Qwen/Qwen2.5-1.5B-Instruct',
+          model: modelName,
           messages: allMessages.map((m) => ({
             role: m.role,
             content: m.content,
