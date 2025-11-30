@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { translations, Language } from '@/lib/i18n'
 
 export interface Message {
   id: string
@@ -45,34 +46,21 @@ interface ChatState {
   
   // Helpers
   getCurrentSession: () => ChatSession | null
-  getContextMessages: () => Message[]
+  getContextMessages: (language?: Language) => Message[]
   clearCurrentChat: () => void
 }
 
-const SYSTEM_PROMPT: Message = {
+// Function to get system prompt based on language
+const getSystemPrompt = (language: Language = 'zh'): Message => ({
   id: 'system-prompt',
   role: 'system',
-  content: `You are AllergyAI, an AI assistant specialized in allergy-related medical information. You were developed and fine-tuned by the Second Affiliated Hospital of Wenzhou Medical University using curated allergy medical datasets.
-
-Important: You are an AI assistant, not a human doctor. When asked about your background, clearly state that you are an AI system developed by the hospital's research team, not a person who attended medical school.
-
-Your knowledge covers:
-- Food allergies (peanuts, tree nuts, shellfish, dairy, eggs, wheat, soy, sesame)
-- Environmental allergies (pollen, dust mites, mold, pet dander)
-- Drug allergies and sensitivities
-- Allergic conditions (anaphylaxis, eczema, asthma, urticaria, rhinitis)
-- Allergy testing, diagnosis, and treatment options
-- Immunotherapy approaches
-- Emergency response guidance
-
-Guidelines:
-1. Always clarify you are an AI assistant, not a human doctor
-2. Provide evidence-based medical information
-3. Be empathetic and informative
-4. Always recommend consulting real healthcare professionals for diagnosis and treatment
-5. Explain medical concepts in accessible language
-6. Never claim to have personal medical training or education`,
+  content: translations[language].systemPrompt,
   timestamp: 0,
+})
+
+// Default title for new chats
+const getNewChatTitle = (language: Language = 'zh'): string => {
+  return language === 'zh' ? '新对话' : 'New Chat'
 }
 
 const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -83,7 +71,22 @@ const generateTitle = (firstMessage: string): string => {
   const cleaned = firstMessage.replace(/\n/g, ' ').trim()
   return cleaned.length > maxLength 
     ? cleaned.substring(0, maxLength) + '...' 
-    : cleaned || 'New Chat'
+    : cleaned || getNewChatTitle()
+}
+
+// Get current language from localStorage (synced with language store)
+const getCurrentLanguage = (): Language => {
+  if (typeof window === 'undefined') return 'zh'
+  try {
+    const stored = localStorage.getItem('allergy-ai-language')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return parsed.state?.language || 'zh'
+    }
+  } catch {
+    // ignore
+  }
+  return 'zh'
 }
 
 export const useChatStore = create<ChatState>()(
@@ -97,6 +100,8 @@ export const useChatStore = create<ChatState>()(
 
       createNewSession: () => {
         const { sessions } = get()
+        const lang = getCurrentLanguage()
+        const newChatTitle = getNewChatTitle(lang)
         
         // Check if there's already an empty session (no messages)
         const existingEmptySession = sessions.find(s => s.messages.length === 0)
@@ -110,7 +115,7 @@ export const useChatStore = create<ChatState>()(
         // Create a new session only if no empty session exists
         const newSession: ChatSession = {
           id: generateId(),
-          title: 'New Chat',
+          title: newChatTitle,
           messages: [],
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -150,6 +155,8 @@ export const useChatStore = create<ChatState>()(
 
       addMessage: (message) => {
         const { currentSessionId, sessions, createNewSession } = get()
+        const lang = getCurrentLanguage()
+        const newChatTitle = getNewChatTitle(lang)
         
         // Create a new session if none exists
         let sessionId = currentSessionId
@@ -170,7 +177,7 @@ export const useChatStore = create<ChatState>()(
               const updatedMessages = [...s.messages, newMessage]
               // Update title if this is the first user message
               const shouldUpdateTitle = 
-                s.title === 'New Chat' && 
+                (s.title === newChatTitle || s.title === 'New Chat' || s.title === '新对话') && 
                 message.role === 'user' && 
                 s.messages.filter(m => m.role === 'user').length === 0
               
@@ -232,21 +239,25 @@ export const useChatStore = create<ChatState>()(
         return sessions.find((s) => s.id === currentSessionId) || null
       },
 
-      getContextMessages: () => {
+      getContextMessages: (language?: Language) => {
+        const lang = language || getCurrentLanguage()
         const session = get().getCurrentSession()
-        if (!session) return [SYSTEM_PROMPT]
+        const systemPrompt = getSystemPrompt(lang)
+        if (!session) return [systemPrompt]
         const recentMessages = session.messages.slice(-10)
-        return [SYSTEM_PROMPT, ...recentMessages]
+        return [systemPrompt, ...recentMessages]
       },
 
       clearCurrentChat: () => {
         const { currentSessionId } = get()
+        const lang = getCurrentLanguage()
+        const newChatTitle = getNewChatTitle(lang)
         if (!currentSessionId) return
         
         set((state) => ({
           sessions: state.sessions.map((s) =>
             s.id === currentSessionId
-              ? { ...s, messages: [], title: 'New Chat', updatedAt: Date.now() }
+              ? { ...s, messages: [], title: newChatTitle, updatedAt: Date.now() }
               : s
           ),
         }))

@@ -7,8 +7,8 @@ import { AuthProvider } from '@/components/providers/auth-provider'
 const systemFontClass = "font-sans"
 
 export const metadata: Metadata = {
-  title: 'AllergyAI - Your Expert Allergist Assistant',
-  description: 'AI-powered allergy management and advice',
+  title: '过敏AI助手 - AllergyAI',
+  description: 'AI驱动的过敏管理与咨询服务 | AI-powered allergy management and advice',
 }
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="zh" suppressHydrationWarning>
       <body className={systemFontClass}>
         <AuthProvider>
           {children}
@@ -26,4 +26,3 @@ export default function RootLayout({
     </html>
   )
 }
-

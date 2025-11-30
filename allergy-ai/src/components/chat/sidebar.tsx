@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { useChatStore, ChatSession } from '@/store/chat-store'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
 interface SidebarProps {
   onNewChat?: () => void
@@ -22,6 +23,8 @@ interface ChatItemProps {
 }
 
 function ChatItem({ session, isActive, onSelect, onDelete, onRename, onShare }: ChatItemProps) {
+  const { t } = useTranslation()
+  
   return (
     <div
       className={cn(
@@ -59,13 +62,13 @@ function ChatItem({ session, isActive, onSelect, onDelete, onRename, onShare }: 
             icon={<FaPen className="w-3 h-3" />}
             onClick={onRename}
           >
-            Rename
+            {t.chat.rename}
           </DropdownMenuItem>
           <DropdownMenuItem 
             icon={<FaShare className="w-3 h-3" />}
             onClick={onShare}
           >
-            Share
+            {t.chat.share}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem 
@@ -73,7 +76,7 @@ function ChatItem({ session, isActive, onSelect, onDelete, onRename, onShare }: 
             onClick={onDelete}
             variant="destructive"
           >
-            Delete
+            {t.chat.delete}
           </DropdownMenuItem>
         </DropdownMenu>
       </div>
@@ -92,6 +95,7 @@ export function Sidebar({ onNewChat }: SidebarProps) {
     deleteSession,
     updateSessionTitle,
   } = useChatStore()
+  const { t } = useTranslation()
 
   // Prevent hydration mismatch - only show sessions after client mount
   const [mounted, setMounted] = useState(false)
@@ -108,16 +112,16 @@ export function Sidebar({ onNewChat }: SidebarProps) {
   }
 
   const handleRename = (sessionId: string, currentTitle: string) => {
-    const newTitle = window.prompt('Enter new chat name:', currentTitle)
+    const newTitle = window.prompt(t.chat.enterNewChatName, currentTitle)
     if (newTitle && newTitle.trim()) {
       updateSessionTitle(sessionId, newTitle.trim())
     }
   }
 
   const handleShare = (session: ChatSession) => {
-    const summary = `AllergyAI Chat: ${session.title}\n\nMessages: ${session.messages.length}`
+    const summary = `${t.appName}: ${session.title}\n\nMessages: ${session.messages.length}`
     navigator.clipboard.writeText(summary)
-    alert('Chat info copied to clipboard!')
+    alert(t.chat.chatInfoCopied)
   }
 
   return (
@@ -137,7 +141,7 @@ export function Sidebar({ onNewChat }: SidebarProps) {
             size="icon"
             onClick={toggleSidebar}
             className="h-10 w-10 rounded-full hover:bg-muted"
-            title={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+            title={mounted ? (isSidebarOpen ? t.chat.collapseSidebar : t.chat.expandSidebar) : ''}
           >
             <FaBars className="w-5 h-5 text-muted-foreground" />
           </Button>
@@ -148,7 +152,7 @@ export function Sidebar({ onNewChat }: SidebarProps) {
               variant="ghost"
               size="icon"
               className="h-10 w-10 rounded-full hover:bg-muted"
-              title="Search"
+              title={mounted ? t.chat.search : ''}
             >
               <FaSearch className="w-4 h-4 text-muted-foreground" />
             </Button>
@@ -166,11 +170,13 @@ export function Sidebar({ onNewChat }: SidebarProps) {
                 ? 'h-12 px-4 justify-start gap-3 w-full' 
                 : 'h-10 w-10 p-0 mx-auto'
             )}
-            title="New chat"
+            title={mounted ? t.chat.newChat : ''}
           >
             <FaEdit className="w-5 h-5 text-muted-foreground flex-shrink-0" />
             {isSidebarOpen && (
-              <span className="text-sm text-muted-foreground">New Chat</span>
+              <span className="text-sm text-muted-foreground">
+                {mounted ? t.chat.newChat : ''}
+              </span>
             )}
           </Button>
         </div>
@@ -181,7 +187,7 @@ export function Sidebar({ onNewChat }: SidebarProps) {
             {/* Section Header */}
             <div className="px-4 py-3">
               <h2 className="text-xs font-medium text-muted-foreground">
-                Recent
+                {mounted ? t.chat.recent : ''}
               </h2>
             </div>
 
@@ -193,9 +199,11 @@ export function Sidebar({ onNewChat }: SidebarProps) {
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                       <FaLeaf className="w-6 h-6 text-primary/50" />
                     </div>
-                    <p className="text-sm text-muted-foreground">No conversations yet</p>
+                    <p className="text-sm text-muted-foreground">
+                      {mounted ? t.chat.noConversations : ''}
+                    </p>
                     <p className="text-xs text-muted-foreground/70 mt-1">
-                      Click New Chat to start
+                      {mounted ? t.chat.clickNewChat : ''}
                     </p>
                   </div>
                 ) : (

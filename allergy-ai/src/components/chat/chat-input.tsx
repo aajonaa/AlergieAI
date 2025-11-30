@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 're
 import { FaPaperPlane } from 'react-icons/fa'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
 interface ChatInputProps {
   onSend: (message: string) => void
@@ -17,7 +18,13 @@ export interface ChatInputHandle {
 export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
   function ChatInput({ onSend, disabled }, ref) {
   const [input, setInput] = useState('')
+  const [mounted, setMounted] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const { t } = useTranslation()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Expose focus method to parent
   useImperativeHandle(ref, () => ({
@@ -79,7 +86,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about allergies, pollen, or diet..."
+          placeholder={mounted ? t.chat.inputPlaceholder : ''}
           disabled={disabled}
           rows={1}
           autoFocus
@@ -102,7 +109,7 @@ export const ChatInput = forwardRef<ChatInputHandle, ChatInputProps>(
           className="h-[44px] w-[44px] rounded-xl bg-primary hover:bg-primary/90 flex-shrink-0"
         >
           <FaPaperPlane className="h-4 w-4" />
-          <span className="sr-only">Send message</span>
+          <span className="sr-only">{mounted ? t.chat.sendMessage : 'Send'}</span>
         </Button>
       </div>
     </form>

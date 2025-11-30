@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/chat/sidebar'
 import { useChatStore } from '@/store/chat-store'
 import { FaLeaf } from 'react-icons/fa'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/lib/i18n'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'
 
@@ -25,6 +26,7 @@ export default function ChatPage() {
     getContextMessages,
     getCurrentSession,
   } = useChatStore()
+  const { t } = useTranslation()
 
   // Prevent hydration mismatch - only show persisted data after client mount
   const [mounted, setMounted] = useState(false)
@@ -45,10 +47,10 @@ export default function ChatPage() {
             setConnectionError(null)
           }
         } else {
-          setConnectionError('Could not connect to vLLM server')
+          setConnectionError(t.chat.connectionError)
         }
       } catch {
-        setConnectionError('vLLM server not running. Start with: ./start_vllm.sh')
+        setConnectionError(t.chat.vllmNotRunning)
       }
     }
     
@@ -56,7 +58,7 @@ export default function ChatPage() {
     // Refresh model name every 30 seconds
     const interval = setInterval(fetchModelName, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [t.chat.connectionError, t.chat.vllmNotRunning])
 
   const currentSession = getCurrentSession()
   const messages = mounted ? (currentSession?.messages || []) : []
@@ -102,7 +104,7 @@ export default function ChatPage() {
   const handleSendMessage = async (content: string) => {
     // Check if model is available
     if (!modelName) {
-      addMessage({ role: 'assistant', content: '⚠️ Cannot connect to vLLM server. Please make sure `./start_vllm.sh` is running.' })
+      addMessage({ role: 'assistant', content: `⚠️ ${t.chat.vllmNotRunning}` })
       return
     }
 
@@ -197,7 +199,7 @@ export default function ChatPage() {
       console.error('Chat error:', error)
       addMessage({
         role: 'assistant',
-        content: 'I apologize, but I encountered an error connecting to the server. Please ensure the GPU API is running and try again.',
+        content: t.chat.serverError,
       })
     } finally {
       setLoading(false)
@@ -228,24 +230,23 @@ export default function ChatPage() {
                   <FaLeaf className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground mb-2">
-                  Welcome to AllergyAI
+                  {mounted ? t.chat.welcome : ''}
                 </h2>
                 <p className="text-muted-foreground max-w-md mb-8">
-                  I&apos;m your expert allergist assistant. Ask me anything about allergies,
-                  pollen seasons, food sensitivities, or dietary management.
+                  {mounted ? t.chat.welcomeDescription : ''}
                 </p>
                 <div className="grid gap-2 text-sm text-muted-foreground">
                   <p className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-primary" />
-                    &quot;What are common spring allergy triggers?&quot;
+                    {mounted ? t.chat.exampleQuestion1 : ''}
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-secondary" />
-                    &quot;How can I manage my dust mite allergy?&quot;
+                    {mounted ? t.chat.exampleQuestion2 : ''}
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-warning" />
-                    &quot;What foods should I avoid with a nut allergy?&quot;
+                    {mounted ? t.chat.exampleQuestion3 : ''}
                   </p>
                 </div>
               </div>
