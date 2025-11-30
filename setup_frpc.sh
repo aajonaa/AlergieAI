@@ -44,6 +44,13 @@ type = "tcp"
 localIP = "127.0.0.1"
 localPort = 8000
 remotePort = 8000
+
+[[proxies]]
+name = "frontend"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 3000
+remotePort = 3000
 EOF
 
 echo ""
@@ -51,6 +58,10 @@ echo "FRP client configured!"
 echo ""
 echo "Config file: ${FRP_DIR}/frpc.toml"
 echo "Server: ${ECS_IP}:7000"
+echo ""
+echo "Proxies configured:"
+echo "  - vLLM API:  localhost:8000 -> ${ECS_IP}:8000"
+echo "  - Frontend:  localhost:3000 -> ${ECS_IP}:3000"
 echo ""
 echo "========================================"
 echo "IMPORTANT: Edit the token in this script"
