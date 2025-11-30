@@ -1,0 +1,10 @@
+serverAddr = "120.26.142.237"
+serverPort = 7000
+auth.token = "40ca7f45da3d9201e9c97203e234ee4a"
+
+[[proxies]]
+name = "vllm-api"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 8000
+remotePort = 8000
