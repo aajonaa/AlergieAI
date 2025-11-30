@@ -8,3 +8,10 @@ type = "tcp"
 localIP = "127.0.0.1"
 localPort = 8000
 remotePort = 8000
+
+[[proxies]]
+name = "frontend"
+type = "tcp"
+localIP = "127.0.0.1"
+localPort = 3000
+remotePort = 3000
