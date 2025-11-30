@@ -32,6 +32,9 @@ echo "----------------------------------------------------------------"
 $PYTHON_EXEC -m vllm.entrypoints.openai.api_server \
     --model $MODEL_NAME \
     --trust-remote-code \
+    --host 0.0.0.0 \
     --port 8000 \
     --gpu-memory-utilization 0.90 \
-    --max-model-len 4096
+    --max-model-len 4096 \
+    --api-key "" \
+    --allowed-origins '["*"]'

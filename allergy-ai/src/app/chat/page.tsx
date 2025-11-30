@@ -12,7 +12,8 @@ import { FaLeaf } from 'react-icons/fa'
 import { cn } from '@/lib/utils'
 import { useTranslation } from '@/lib/i18n'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/v1'
+// Use internal API proxy - works for both local and public (FRP) access
+const API_URL = '/api/vllm'
 
 export default function ChatPage() {
   const {
