@@ -16,7 +16,7 @@ set -e  # Exit on error
 # -----------------------------------------------------------------------------
 
 # GPU Configuration
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # Model Configuration
 MODEL_NAME="Qwen/Qwen2.5-1.5B-Instruct"
@@ -59,7 +59,7 @@ echo "Configuration:"
 echo "  Model:          $MODEL_NAME"
 echo "  Dataset:        $DATASET_PATH"
 echo "  Output:         $OUTPUT_DIR"
-echo "  GPU:            $CUDA_VISIBLE_DEVICES"
+echo "  GPUs:           $CUDA_VISIBLE_DEVICES"
 echo ""
 echo "LoRA Settings:"
 echo "  Rank (r):       $LORA_R"
