@@ -22,9 +22,7 @@ export CUDA_VISIBLE_DEVICES=0,1,2,3
 MODEL_NAME="Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 # Data Configuration  
-# Use Gemini-generated dataset (or example data for testing)
 DATASET_PATH="training/data/allergy_dataset.jsonl"
-# DATASET_PATH="training/data/example_allergy_qa.jsonl"  # For testing
 MAX_SEQ_LENGTH=1024
 
 # LoRA Configuration
