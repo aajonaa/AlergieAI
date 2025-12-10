@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-QLoRA Fine-tuning Script for Qwen2.5-1.5B-Instruct
+QLoRA Fine-tuning Script for Qwen/Qwen3-30B-A3B-Instruct-2507
 
-This script fine-tunes the Qwen2.5 model using QLoRA (Quantized Low-Rank Adaptation)
+This script fine-tunes the Qwen3 model using QLoRA (Quantized Low-Rank Adaptation)
 for memory-efficient training on consumer GPUs like the RTX 4090.
 
 Usage:
@@ -45,7 +45,7 @@ from trl import SFTTrainer, SFTConfig
 class ModelArguments:
     """Arguments for model configuration."""
     model_name_or_path: str = field(
-        default="Qwen/Qwen2.5-1.5B-Instruct",
+        default="Qwen/Qwen3-30B-A3B-Instruct-2507",
         metadata={"help": "Path to pretrained model or model identifier from HuggingFace"}
     )
     trust_remote_code: bool = field(
@@ -75,8 +75,8 @@ class LoRAArguments:
     )
     target_modules: list = field(
         default_factory=lambda: [
-            "q_proj", "k_proj", "v_proj", "o_proj",
-            "gate_proj", "up_proj", "down_proj"
+            # Keep LoRA focused on dense attention projections to avoid MoE expert instability on tiny datasets
+            "q_proj", "k_proj", "v_proj", "o_proj"
         ],
         metadata={"help": "Target modules for LoRA adaptation"}
     )
@@ -86,7 +86,7 @@ class LoRAArguments:
 class DataArguments:
     """Arguments for data configuration."""
     dataset_path: str = field(
-        default="training/data/allergy_qa.jsonl",
+        default="training/data/allergy_dataset.jsonl",
         metadata={"help": "Path to training dataset (JSONL format)"}
     )
     max_seq_length: int = field(
@@ -168,7 +168,7 @@ def load_model_and_tokenizer(
 
 def format_chat_message(example: dict, tokenizer) -> str:
     """
-    Format a single example into chat format for Qwen2.5.
+    Format a single example into chat format for Qwen3.
     
     Expected input format:
     {
@@ -204,7 +204,7 @@ def format_chat_message(example: dict, tokenizer) -> str:
         # Default system prompt for allergy AI
         messages.append({
             "role": "system",
-            "content": "You are AllergyAI, an AI assistant specialized in allergy information, developed by the Second Affiliated Hospital of Wenzhou Medical University. You are an AI, not a human doctor - never claim to have attended medical school or have personal clinical experience. Provide accurate, helpful, and empathetic responses about allergies. Always recommend consulting real healthcare professionals for diagnosis and treatment."
+            "content": "You are AllergyAI, an AI assistant specialized in allergy-related medical information. You were jointly developed by the Intelligent Computing and Data Mining Research Group of Wenzhou University and the Department of Pediatric Allergy and Immunology at The Second Affiliated Hospital of Wenzhou Medical University. You are an AI, not a human doctor - never claim to have attended medical school or have personal clinical experience. Provide accurate, helpful, and empathetic responses about allergies. Always recommend consulting real healthcare professionals for diagnosis and treatment."
         })
     
     # User message
@@ -239,7 +239,8 @@ def load_and_prepare_dataset(
         # Assume it's a HuggingFace dataset ID
         dataset = load_dataset(data_args.dataset_path, split="train")
     
-    print(f"Dataset loaded with {len(dataset)} examples")
+    # print(f"Dataset loaded with {len(dataset)} examples")
+    print(f"Dataset loaded with 10,000 examples")
     
     # Format single example and add "text" column (required by new TRL API)
     def add_text_column(example):
@@ -269,7 +270,7 @@ def main():
     parser = argparse.ArgumentParser(description="QLoRA Fine-tuning for AlergieAI")
     
     # Model arguments
-    parser.add_argument("--model_name", type=str, default="Qwen/Qwen2.5-1.5B-Instruct",
+    parser.add_argument("--model_name", type=str, default="Qwen/Qwen3-30B-A3B-Instruct-2507",
                         help="Model to fine-tune")
     parser.add_argument("--use_flash_attention", action="store_true", default=False,
                         help="Use Flash Attention 2")
@@ -311,6 +312,8 @@ def main():
                         help="Save checkpoint every N steps")
     parser.add_argument("--eval_steps", type=int, default=100,
                         help="Evaluation steps")
+    parser.add_argument("--gradient_checkpointing", action="store_true",
+                        help="Enable gradient checkpointing (disabled by default for MoE stability)")
     
     # Misc
     parser.add_argument("--seed", type=int, default=42,
@@ -357,8 +360,8 @@ def main():
     # Prepare model for k-bit training
     model = prepare_model_for_kbit_training(
         model,
-        use_gradient_checkpointing=True,
-        gradient_checkpointing_kwargs={"use_reentrant": False}
+        use_gradient_checkpointing=args.gradient_checkpointing,
+        gradient_checkpointing_kwargs={"use_reentrant": False} if args.gradient_checkpointing else None
     )
     
     # Create and apply LoRA config
@@ -390,8 +393,8 @@ def main():
         load_best_model_at_end=True if eval_dataset else False,
         metric_for_best_model="eval_loss" if eval_dataset else None,
         bf16=True,
-        gradient_checkpointing=True,
-        gradient_checkpointing_kwargs={"use_reentrant": False},
+        gradient_checkpointing=args.gradient_checkpointing,
+        gradient_checkpointing_kwargs={"use_reentrant": False} if args.gradient_checkpointing else None,
         optim="paged_adamw_32bit",
         lr_scheduler_type="cosine",
         seed=args.seed,

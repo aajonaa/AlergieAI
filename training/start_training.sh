@@ -19,13 +19,13 @@ set -e  # Exit on error
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 # Model Configuration
-MODEL_NAME="Qwen/Qwen2.5-1.5B-Instruct"
+MODEL_NAME="Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 # Data Configuration  
 # Use Gemini-generated dataset (or example data for testing)
-DATASET_PATH="training/data/allergy_dataset_gemini.jsonl"
+DATASET_PATH="training/data/allergy_dataset.jsonl"
 # DATASET_PATH="training/data/example_allergy_qa.jsonl"  # For testing
-MAX_SEQ_LENGTH=2048
+MAX_SEQ_LENGTH=1024
 
 # LoRA Configuration
 LORA_R=64
@@ -35,14 +35,20 @@ LORA_DROPOUT=0.05
 # Training Configuration
 OUTPUT_DIR="./outputs/allergy-ai-qlora"
 NUM_EPOCHS=3
-BATCH_SIZE=4
-GRAD_ACCUM_STEPS=4
+BATCH_SIZE=1
+GRAD_ACCUM_STEPS=16
 LEARNING_RATE=2e-4
+
+# WandB Configuration
+USE_WANDB=true
+WANDB_PROJECT="allergy-ai"
+WANDB_NAME="qlora-$(date +%Y%m%d-%H%M%S)"
 
 # Mirrors (for faster download / bypass network issues)
 export UV_PYPI_MIRROR="https://pypi.tuna.tsinghua.edu.cn/simple"
 export HF_ENDPOINT="https://hf-mirror.com"
 export HF_HUB_OFFLINE=0  # Set to 1 if you want fully offline mode (models must be cached)
+export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"
 
 # Python executable
 PYTHON_EXEC=".venv/bin/python"
@@ -60,6 +66,7 @@ echo "  Model:          $MODEL_NAME"
 echo "  Dataset:        $DATASET_PATH"
 echo "  Output:         $OUTPUT_DIR"
 echo "  GPUs:           $CUDA_VISIBLE_DEVICES"
+echo "  WandB:          $USE_WANDB (project: $WANDB_PROJECT, run: $WANDB_NAME)"
 echo ""
 echo "LoRA Settings:"
 echo "  Rank (r):       $LORA_R"
@@ -102,6 +109,14 @@ echo ""
 echo "Starting training..."
 echo "=================================================================="
 
+WANDB_ARGS=()
+if [ "$USE_WANDB" = true ]; then
+    export WANDB_PROJECT
+    export WANDB_NAME
+    WANDB_ARGS+=(--use_wandb)
+    WANDB_ARGS+=(--wandb_project "$WANDB_PROJECT")
+fi
+
 $PYTHON_EXEC training/train_qlora.py \
     --model_name "$MODEL_NAME" \
     --dataset_path "$DATASET_PATH" \
@@ -114,6 +129,7 @@ $PYTHON_EXEC training/train_qlora.py \
     --per_device_train_batch_size $BATCH_SIZE \
     --gradient_accumulation_steps $GRAD_ACCUM_STEPS \
     --learning_rate $LEARNING_RATE \
+    "${WANDB_ARGS[@]}" \
     "$@"  # Pass any additional arguments
 
 echo ""

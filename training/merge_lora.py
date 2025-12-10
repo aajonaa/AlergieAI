@@ -10,7 +10,7 @@ Usage:
     python training/merge_lora.py \
         --adapter_path ./outputs/allergy-ai-qlora \
         --output_path ./outputs/allergy-ai-merged \
-        --base_model Qwen/Qwen2.5-1.5B-Instruct
+        --base_model Qwen/Qwen3-30B-A3B-Instruct-2507
 """
 
 import argparse
@@ -109,7 +109,7 @@ def main():
     parser.add_argument(
         "--base_model",
         type=str,
-        default="Qwen/Qwen2.5-1.5B-Instruct",
+        default="Qwen/Qwen3-30B-A3B-Instruct-2507",
         help="Base model path or HuggingFace ID"
     )
     parser.add_argument(
