@@ -146,11 +146,11 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t">
+          {/* <div className="mt-6 pt-6 border-t">
             <p className="text-xs text-muted-foreground text-center">
               {t.login.demoCredentials} <code className="bg-muted px-1.5 py-0.5 rounded">doctor</code> / <code className="bg-muted px-1.5 py-0.5 rounded">pollen123</code>
             </p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
     </div>

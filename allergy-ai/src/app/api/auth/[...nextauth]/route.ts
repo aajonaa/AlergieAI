@@ -14,6 +14,7 @@ export const authOptions: NextAuthOptions = {
         const validUsers = [
           { id: '1', username: 'doctor', password: 'pollen123', name: 'Dr. Smith' },
           { id: '2', username: 'admin', password: 'admin123', name: 'Admin User' },
+          { id: '2', username: 'chl', password: 'admin123', name: 'Admin User' },
         ]
 
         const user = validUsers.find(

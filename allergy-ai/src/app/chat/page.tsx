@@ -37,7 +37,7 @@ export default function ChatPage() {
   // Fetch model name from vLLM server on mount
   useEffect(() => {
     setMounted(true)
-    
+
     const fetchModelName = async () => {
       try {
         const response = await fetch(`${API_URL}/models`)
@@ -54,7 +54,7 @@ export default function ChatPage() {
         setConnectionError(t.chat.vllmNotRunning)
       }
     }
-    
+
     fetchModelName()
     // Refresh model name every 30 seconds
     const interval = setInterval(fetchModelName, 30000)
@@ -70,7 +70,7 @@ export default function ChatPage() {
   // Scroll to bottom function
   const scrollToBottom = useCallback((instant = false) => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
+      messagesEndRef.current.scrollIntoView({
         behavior: instant ? 'instant' : 'smooth',
         block: 'end'
       })
@@ -117,7 +117,7 @@ export default function ChatPage() {
     try {
       // Get context messages (last 10 + system prompt)
       const contextMessages = getContextMessages()
-      
+
       // Add the new user message to context
       const allMessages = [
         ...contextMessages,
@@ -175,7 +175,7 @@ export default function ChatPage() {
 
         for (const line of lines) {
           const trimmedLine = line.trim()
-          
+
           if (trimmedLine.startsWith('data: ')) {
             const data = trimmedLine.slice(6)
 
@@ -226,17 +226,26 @@ export default function ChatPage() {
         <ScrollArea className="flex-1 p-4">
           <div className="max-w-3xl mx-auto space-y-4">
             {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-6 shadow-2xl shadow-primary/30">
-                  <FaLeaf className="w-10 h-10 text-white" />
+              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center w-full max-w-2xl mx-auto px-4">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center mb-6 shadow-2xl shadow-primary/30">
+                  <FaLeaf className="w-8 h-8 text-white" />
                 </div>
                 <h2 className="text-2xl font-semibold text-foreground mb-2">
                   {mounted ? t.chat.welcome : ''}
                 </h2>
-                <p className="text-muted-foreground max-w-md mb-8">
+                <p className="text-muted-foreground mb-8">
                   {mounted ? t.chat.welcomeDescription : ''}
                 </p>
-                <div className="grid gap-2 text-sm text-muted-foreground">
+
+                <div className="w-full mb-8">
+                  <ChatInput
+                    ref={chatInputRef}
+                    onSend={handleSendMessage}
+                    disabled={isLoading || isStreaming}
+                  />
+                </div>
+
+                <div className="grid gap-2 text-sm text-muted-foreground w-full max-w-md">
                   <p className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-primary" />
                     {mounted ? t.chat.exampleQuestion1 : ''}
@@ -254,9 +263,9 @@ export default function ChatPage() {
             ) : (
               <>
                 {messages.map((message, index) => (
-                  <MessageBubble 
-                    key={message.id} 
-                    message={message} 
+                  <MessageBubble
+                    key={message.id}
+                    message={message}
                     isStreaming={isStreaming && index === messages.length - 1}
                   />
                 ))}
@@ -268,16 +277,18 @@ export default function ChatPage() {
           </div>
         </ScrollArea>
 
-        {/* Input Area */}
-        <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="max-w-3xl mx-auto">
-            <ChatInput 
-              ref={chatInputRef}
-              onSend={handleSendMessage} 
-              disabled={isLoading || isStreaming} 
-            />
+        {/* Input Area - Only show when there are messages */}
+        {messages.length > 0 && (
+          <div className="border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="max-w-3xl mx-auto">
+              <ChatInput
+                ref={chatInputRef}
+                onSend={handleSendMessage}
+                disabled={isLoading || isStreaming}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
