@@ -156,6 +156,248 @@ cd allergy-ai && npm run dev
 | API Docs | http://localhost:8000/docs | http://www.qtrading.top:8000/docs |
 | Frontend | http://localhost:3000 | http://www.qtrading.top:3000 |
 
+## QLoRA Fine-Tuning
+
+The model is fine-tuned using **QLoRA (Quantized Low-Rank Adaptation)**, enabling efficient training on consumer GPUs with minimal VRAM requirements.
+
+### How QLoRA Works
+
+QLoRA combines two techniques to enable efficient fine-tuning:
+
+1. **4-bit Quantization**: The base model weights are quantized to 4-bit precision using NF4 (Normalized Float 4), reducing memory from ~3GB to ~800MB
+2. **Low-Rank Adaptation (LoRA)**: Instead of updating all 1.5B parameters, we inject small trainable matrices into specific layers
+
+#### LoRA Mathematics
+
+For a pre-trained weight matrix `W₀ ∈ ℝᵈˣᵏ`, LoRA adds a low-rank decomposition:
+
+```
+W = W₀ + ΔW = W₀ + BA
+```
+
+Where:
+- `B ∈ ℝᵈˣʳ` and `A ∈ ℝʳˣᵏ` are the trainable low-rank matrices
+- `r` (rank) << min(d, k), making the update efficient
+- `W₀` remains **frozen** (not updated)
+- Only `A` and `B` are trained
+
+The output is scaled by `α/r` (alpha/rank ratio), so the effective update is:
+
+```
+h = W₀x + (α/r) · BAx
+```
+
+### Which Parameters Are Updated?
+
+During QLoRA training, **only the LoRA adapter matrices (A and B) are updated**. The original model weights remain frozen in 4-bit quantized form.
+
+#### Target Modules (Where LoRA is Applied)
+
+LoRA adapters are injected into 7 linear layers per transformer block:
+
+| Module | Layer Type | Function | Dimensions (per layer) |
+|--------|-----------|----------|----------------------|
+| `q_proj` | Attention | Query projection | hidden_size → hidden_size |
+| `k_proj` | Attention | Key projection | hidden_size → kv_hidden_size |
+| `v_proj` | Attention | Value projection | hidden_size → kv_hidden_size |
+| `o_proj` | Attention | Output projection | hidden_size → hidden_size |
+| `gate_proj` | MLP | Gating mechanism (SwiGLU) | hidden_size → intermediate_size |
+| `up_proj` | MLP | Up projection (SwiGLU) | hidden_size → intermediate_size |
+| `down_proj` | MLP | Down projection | intermediate_size → hidden_size |
+
+For Qwen2.5-1.5B with `hidden_size=1536`, `intermediate_size=8960`, and 28 transformer layers:
+
+| Trainable Component | Shape per Module | Parameters per Layer | Total (28 layers) |
+|--------------------|------------------|---------------------|------------------|
+| `q_proj` A matrix | (64, 1536) | 98,304 | 2,752,512 |
+| `q_proj` B matrix | (1536, 64) | 98,304 | 2,752,512 |
+| `k_proj` A matrix | (64, 1536) | 98,304 | 2,752,512 |
+| `k_proj` B matrix | (256, 64) | 16,384 | 458,752 |
+| `v_proj` A matrix | (64, 1536) | 98,304 | 2,752,512 |
+| `v_proj` B matrix | (256, 64) | 16,384 | 458,752 |
+| `o_proj` A matrix | (64, 1536) | 98,304 | 2,752,512 |
+| `o_proj` B matrix | (1536, 64) | 98,304 | 2,752,512 |
+| `gate_proj` A matrix | (64, 1536) | 98,304 | 2,752,512 |
+| `gate_proj` B matrix | (8960, 64) | 573,440 | 16,056,320 |
+| `up_proj` A matrix | (64, 1536) | 98,304 | 2,752,512 |
+| `up_proj` B matrix | (8960, 64) | 573,440 | 16,056,320 |
+| `down_proj` A matrix | (64, 8960) | 573,440 | 16,056,320 |
+| `down_proj` B matrix | (1536, 64) | 98,304 | 2,752,512 |
+
+**Total Trainable Parameters**: ~26M (1.7% of 1.5B base model)
+
+#### What Remains Frozen (Not Updated)
+
+- All embedding layers (`embed_tokens`)
+- All LayerNorm parameters
+- The original weight matrices `W₀` in all linear layers
+- The language model head (`lm_head`)
+- All bias terms (LoRA is configured with `bias="none"`)
+
+### Merging: How Adapters Integrate with Original Model
+
+After training, the LoRA adapters are **merged** back into the base model to create a standalone model for deployment.
+
+#### Merge Process (`merge_lora.py`)
+
+```python
+# 1. Load base model in FP16 (full precision)
+base_model = AutoModelForCausalLM.from_pretrained(base_model_path, torch_dtype=torch.float16)
+
+# 2. Load trained LoRA adapters
+model = PeftModel.from_pretrained(base_model, adapter_path)
+
+# 3. Merge: W_new = W₀ + (α/r) · BA
+model = model.merge_and_unload()
+
+# 4. Convert to bfloat16 for vLLM deployment
+model = model.to(torch.bfloat16)
+```
+
+#### What Happens During Merge
+
+For each target module, the merge operation computes:
+
+```
+W_merged = W_original + (lora_alpha / lora_r) × B @ A
+         = W_original + (128 / 64) × B @ A
+         = W_original + 2 × B @ A
+```
+
+The resulting `W_merged` has the **same shape** as the original weight matrix, so:
+- No architectural changes to the model
+- No additional inference overhead
+- Compatible with standard vLLM deployment
+
+### Training Configuration
+
+| Parameter | Value |
+|-----------|-------|
+| **LoRA Rank (r)** | 64 |
+| **LoRA Alpha (α)** | 128 |
+| **Scaling Factor (α/r)** | 2.0 |
+| **LoRA Dropout** | 0.05 |
+| **Epochs** | 3 |
+| **Batch Size** | 4 per GPU |
+| **Gradient Accumulation** | 4 steps (effective batch = 16) |
+| **Learning Rate** | 2e-4 |
+| **LR Scheduler** | Cosine with 10% warmup |
+| **Optimizer** | Paged AdamW 32-bit |
+| **Precision** | BFloat16 |
+| **Max Sequence Length** | 2048 tokens |
+
+### 4-bit Quantization Configuration
+
+```python
+BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",           # Normalized Float 4-bit
+    bnb_4bit_compute_dtype=torch.bfloat16,  # Compute in bf16
+    bnb_4bit_use_double_quant=True,      # Nested quantization
+)
+```
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `load_in_4bit` | True | Load base model in 4-bit |
+| `bnb_4bit_quant_type` | "nf4" | Use NF4 quantization (optimal for normally distributed weights) |
+| `bnb_4bit_compute_dtype` | bfloat16 | Compute dtype for 4-bit matmuls |
+| `bnb_4bit_use_double_quant` | True | Quantize the quantization constants (saves ~0.4 bits/param) |
+
+### Dataset Format
+
+The training supports multiple input formats:
+
+**Option 1: Instruction Format (Recommended)**
+```json
+{
+    "instruction": "What are the symptoms of a peanut allergy?",
+    "input": "",
+    "output": "Common symptoms include hives, swelling, difficulty breathing..."
+}
+```
+
+**Option 2: OpenAI Chat Format**
+```json
+{
+    "messages": [
+        {"role": "user", "content": "What causes allergies?"},
+        {"role": "assistant", "content": "Allergies are caused by..."}
+    ]
+}
+```
+
+### Quick Start Training
+
+```bash
+# 1. Install training dependencies
+uv sync --extra train
+
+# 2. Start training with default configuration
+./training/start_training.sh
+
+# 3. (Optional) Generate custom dataset using Gemini API
+export GEMINI_API_KEY="your-api-key"
+./training/generate_dataset.sh
+```
+
+### Training Commands
+
+**Full training with custom parameters:**
+```bash
+python training/train_qlora.py \
+    --model_name "Qwen/Qwen2.5-1.5B-Instruct" \
+    --dataset_path training/data/allergy_dataset_gemini.jsonl \
+    --output_dir ./outputs/allergy-ai-qlora \
+    --max_seq_length 2048 \
+    --lora_r 64 \
+    --lora_alpha 128 \
+    --num_train_epochs 3 \
+    --per_device_train_batch_size 4 \
+    --gradient_accumulation_steps 4 \
+    --learning_rate 2e-4
+```
+
+**Merge LoRA adapters with base model:**
+```bash
+python training/merge_lora.py \
+    --adapter_path ./outputs/allergy-ai-qlora \
+    --output_path ./outputs/allergy-ai-merged
+```
+
+**Validate training data:**
+```bash
+python training/prepare_data.py validate --input training/data/your_data.jsonl
+```
+
+### Hardware Requirements
+
+| GPU | VRAM | Batch Size | Notes |
+|-----|------|------------|-------|
+| RTX 4090 | 24GB | 4-8 | Recommended |
+| RTX 4070 Ti | 16GB | 2-4 | Default config |
+| RTX 3080 | 10GB | 1-2 | May need smaller LoRA rank |
+
+### Training Output Structure
+
+```
+outputs/allergy-ai-qlora/
+├── adapter_config.json       # LoRA configuration
+├── adapter_model.bin         # Trained LoRA weights
+├── tokenizer.json            # Tokenizer files
+├── checkpoint-*/             # Intermediate checkpoints
+└── training_args.bin         # Training arguments
+```
+
+### Monitoring
+
+Training metrics are logged to **Weights & Biases** (wandb) by default:
+- Training/validation loss curves
+- Learning rate schedule
+- GPU memory utilization
+
+To disable W&B logging, add `--report_to none` to the training command.
+
 ## Monitoring & Performance
 
 ### Checking Deployment Status
